@@ -16,20 +16,11 @@ export default function App() {
     case 'KEYWORDS':
       return <KeywordsScreen game={game} onDone={actions.doneKeywords} />;
     case 'ENCRYPT':
-      return <EncryptScreen key={`${game.round}-${game.activeTeam}`} game={game} onSubmit={actions.submitClues} onNewGame={actions.newGame} />;
-    case 'INTERCEPT':
-    case 'DECODE':
-      return (
-        <GuessScreen
-          game={game}
-          onIntercept={actions.submitIntercept}
-          onDecode={actions.submitDecode}
-          onBackToIntercept={actions.backToIntercept}
-          onNewGame={actions.newGame}
-        />
-      );
+      return <EncryptScreen game={game} onDone={actions.doneEncrypting} onEndGame={actions.endGame} />;
+    case 'GUESS':
+      return <GuessScreen key={`${game.round}-${game.activeTeam}`} game={game} onReveal={actions.revealCode} onEndGame={actions.endGame} />;
     case 'REVEAL':
-      return <RevealScreen game={game} onNext={actions.next} onNewGame={actions.newGame} />;
+      return <RevealScreen game={game} onNext={actions.next} onEndGame={actions.endGame} />;
     case 'GAME_OVER':
       return <GameOverScreen game={game} onNewGame={actions.newGame} />;
   }

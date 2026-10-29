@@ -37,7 +37,9 @@ export function SetupScreen({ onStart }: { onStart: (teams: TeamSetup[]) => void
     <Screen>
       <div className="text-center space-y-1 pt-4">
         <h1 className="text-5xl font-black tracking-tight">Decrypto</h1>
-        <p className="text-white/60">Two teams, one phone. Pass it round when it tells you to.</p>
+        <p className="text-white/60">
+          Two teams, one phone, and a printed notepad sheet for each team. Pass the phone round when it tells you to.
+        </p>
       </div>
       <form onSubmit={handleSubmit} noValidate className="space-y-4">
         {[0, 1].map((i) => {

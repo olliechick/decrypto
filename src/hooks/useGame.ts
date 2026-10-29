@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef } from 'react';
 import { drawCodes, drawKeywords } from '../game/random';
-import { applyAction, Code, createInitialState, GameAction, GameState, normalizeState, TeamSetup } from '../game/state';
+import { applyAction, createInitialState, GameAction, GameState, normalizeState, TeamSetup } from '../game/state';
 import { useLocalStorageState } from './useLocalStorageState';
 
 const STORAGE_KEY = 'decrypto:gameState:v1';
@@ -29,11 +29,10 @@ export function useGame() {
       startGame: (teams: TeamSetup[]) =>
         dispatch({ type: 'START_GAME', teams, keywords: drawKeywords(), codes: drawCodes() }),
       doneKeywords: () => dispatch({ type: 'DONE_KEYWORDS' }),
-      submitClues: (clues: string[]) => dispatch({ type: 'SUBMIT_CLUES', clues }),
-      submitIntercept: (guess: Code) => dispatch({ type: 'SUBMIT_INTERCEPT', guess }),
-      submitDecode: (guess: Code) => dispatch({ type: 'SUBMIT_DECODE', guess }),
-      backToIntercept: () => dispatch({ type: 'BACK_TO_INTERCEPT' }),
+      doneEncrypting: () => dispatch({ type: 'DONE_ENCRYPTING' }),
+      revealCode: () => dispatch({ type: 'REVEAL_CODE' }),
       next: () => dispatch({ type: 'NEXT' }),
+      endGame: () => dispatch({ type: 'END_GAME' }),
       newGame: () => dispatch({ type: 'NEW_GAME' }),
     }),
     [dispatch]

@@ -1,62 +1,64 @@
-import { getEncryptor, otherTeam, type Code, type GameState } from '../game/state';
+import { useState } from 'react';
+import { getCode, getEncryptor, otherTeam, type GameState } from '../game/state';
 import { TEAM_STYLES } from '../utils/teamStyles';
-import { CluesList } from './CluesList';
-import { CodePicker } from './CodePicker';
+import { Button } from './Button';
+import { CodeDisplay } from './CodeDisplay';
 import { GameMenu } from './GameMenu';
+import { Gate } from './Gate';
+import { Overlay } from './Overlay';
 import { Screen } from './Screen';
-import { TokenBar } from './TokenBar';
 
 interface GuessScreenProps {
   game: GameState;
-  onIntercept: (guess: Code) => void;
-  onDecode: (guess: Code) => void;
-  onBackToIntercept: () => void;
-  onNewGame: () => void;
+  onReveal: () => void;
+  onEndGame: () => void;
 }
 
-// The clues are public now. INTERCEPT: the other team guesses the code. DECODE: the encrypting team does.
-export function GuessScreen({ game, onIntercept, onDecode, onBackToIntercept, onNewGame }: GuessScreenProps) {
+// The clues have been read out; both teams write their guesses on the notepad, then the code is revealed
+export function GuessScreen({ game, onReveal, onEndGame }: GuessScreenProps) {
+  const [peeking, setPeeking] = useState(false);
   const team = game.activeTeam;
-  const intercepting = game.phase === 'INTERCEPT';
-  const guessing = intercepting ? otherTeam(team) : team;
-  const encryptor = getEncryptor(game, team);
   const { name } = game.teams[team];
+  const otherName = game.teams[otherTeam(team)].name;
+  const encryptor = getEncryptor(game, team);
+  const styles = TEAM_STYLES[team];
 
   return (
     <Screen>
-      <GameMenu game={game} onNewGame={onNewGame} />
-      <TokenBar game={game} />
-      <div className="space-y-2">
-        <h1 className="text-lg font-bold text-center">
-          {encryptor ? `${encryptor}'s` : `Team ${name}'s`} clues
-          {encryptor && <span className="text-white/50"> (team {name})</span>}
-        </h1>
-        <CluesList clues={game.clues ?? []} />
-        <p className="text-center text-sm text-white/60">Read them out loud. Earlier clues are on the clue sheets.</p>
+      <GameMenu game={game} onEndGame={onEndGame} />
+      <div className={`rounded-3xl p-6 space-y-4 ${styles.card}`}>
+        <div className={`text-sm font-bold ${styles.muted}`}>Round {game.round}</div>
+        <h1 className="text-3xl font-black">Time to guess team {name}'s code</h1>
+        <ol className={`list-decimal pl-5 space-y-2 ${styles.muted}`}>
+          {game.round === 1 ? (
+            <li>There's no interception in round 1.</li>
+          ) : (
+            <li>Team {otherName} writes down their intercept.</li>
+          )}
+          <li>Team {name} writes down their guess{encryptor ? ` (${encryptor} stays quiet)` : ''}.</li>
+          <li>Then reveal the code.</li>
+        </ol>
       </div>
-      <div className={`rounded-2xl p-4 space-y-1 ${TEAM_STYLES[guessing].card}`}>
-        <h2 className="text-xl font-black">
-          {intercepting ? `Team ${game.teams[guessing].name}: intercept!` : `Team ${name}: what's the code?`}
-        </h2>
-        <p className={`text-sm ${TEAM_STYLES[guessing].muted}`}>
-          {intercepting
-            ? `Talk it over quietly, then enter your guess at team ${name}'s code. It stays hidden until the reveal.`
-            : game.round === 1
-              ? `There's no interception in round 1. Talk it over, then enter your guess.${encryptor ? ` ${encryptor} stays quiet!` : ''}`
-              : `Talk it over, then enter your guess.${encryptor ? ` ${encryptor} stays quiet!` : ''}`}
-        </p>
+      <Button className="w-full" onClick={onReveal}>
+        Reveal the code
+      </Button>
+      <div className="text-center">
+        <button type="button" onClick={() => setPeeking(true)} className="text-sm text-white/50 underline">
+          {encryptor ?? 'Encryptor'}: see the code again
+        </button>
       </div>
-      <CodePicker
-        key={`${game.round}-${team}-${game.phase}`}
-        submitLabel={intercepting ? 'Lock in our intercept' : 'Lock in and reveal'}
-        onSubmit={intercepting ? onIntercept : onDecode}
-      />
-      {!intercepting && game.round > 1 && (
-        <div className="text-center">
-          <button type="button" onClick={onBackToIntercept} className="text-sm text-white/50 underline">
-            Team {game.teams[otherTeam(team)].name}'s intercept is locked in. Change it?
-          </button>
-        </div>
+
+      {peeking && (
+        <Overlay title="See the code again" onClose={() => setPeeking(false)}>
+          <Gate team={team} title={`Only ${encryptor ?? `team ${name}'s encryptor`} should look`}>
+            <div className="space-y-5">
+              <CodeDisplay code={getCode(game)!} />
+              <Button className="w-full" onClick={() => setPeeking(false)}>
+                Done, hide it
+              </Button>
+            </div>
+          </Gate>
+        </Overlay>
       )}
     </Screen>
   );

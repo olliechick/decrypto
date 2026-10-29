@@ -2,21 +2,20 @@ import { useState } from 'react';
 import type { GameState, TeamIndex } from '../game/state';
 import { TEAM_STYLES } from '../utils/teamStyles';
 import { Button } from './Button';
-import { ClueSheet } from './ClueSheet';
 import { Gate } from './Gate';
 import { KeywordsCard } from './KeywordsCard';
 import { Overlay } from './Overlay';
 import { Rules } from './Rules';
 
-type Panel = 'clues' | 'words' | 'rules' | 'newGame';
+type Panel = 'words' | 'rules' | 'endGame';
 
 interface GameMenuProps {
   game: GameState;
-  onNewGame: () => void;
+  onEndGame: () => void;
 }
 
-// The buttons along the top of the game: clue sheets, a team's own keywords (behind a gate), rules and new game
-export function GameMenu({ game, onNewGame }: GameMenuProps) {
+// The buttons along the top of the game: a team's own keywords (behind a gate), rules and end game
+export function GameMenu({ game, onEndGame }: GameMenuProps) {
   const [panel, setPanel] = useState<Panel | null>(null);
   const [wordsTeam, setWordsTeam] = useState<TeamIndex | null>(null);
   const close = () => {
@@ -28,7 +27,7 @@ export function GameMenu({ game, onNewGame }: GameMenuProps) {
     <button
       type="button"
       onClick={() => setPanel(p)}
-      className="rounded-lg bg-white/10 px-1 py-2 text-xs font-bold hover:bg-white/20"
+      className="rounded-lg bg-white/10 px-1 py-2 text-sm font-bold hover:bg-white/20"
     >
       {label}
     </button>
@@ -36,18 +35,11 @@ export function GameMenu({ game, onNewGame }: GameMenuProps) {
 
   return (
     <>
-      <nav className="grid grid-cols-4 gap-1.5">
-        {item('clues', 'Clues')}
+      <nav className="grid grid-cols-3 gap-1.5">
         {item('words', 'Our words')}
         {item('rules', 'Rules')}
-        {item('newGame', 'New game')}
+        {item('endGame', 'End game')}
       </nav>
-
-      {panel === 'clues' && (
-        <Overlay title="Clue sheets" onClose={close}>
-          <ClueSheet game={game} initialTeam={game.activeTeam} />
-        </Overlay>
-      )}
 
       {panel === 'words' && (
         <Overlay title="Our words" onClose={close}>
@@ -83,9 +75,9 @@ export function GameMenu({ game, onNewGame }: GameMenuProps) {
         </Overlay>
       )}
 
-      {panel === 'newGame' && (
-        <Overlay title="New game" onClose={close}>
-          <p className="text-white/80">This ends the game in progress and goes back to the setup screen.</p>
+      {panel === 'endGame' && (
+        <Overlay title="End game" onClose={close}>
+          <p className="text-white/80">Has someone won? This ends the game, and then everyone's keywords can be shown.</p>
           <div className="grid grid-cols-2 gap-2">
             <Button variant="secondary" onClick={close}>
               Keep playing
@@ -95,7 +87,7 @@ export function GameMenu({ game, onNewGame }: GameMenuProps) {
               variant="custom"
               onClick={() => {
                 close();
-                onNewGame();
+                onEndGame();
               }}
             >
               End game

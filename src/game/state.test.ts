@@ -1,21 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyAction,
-  Code,
   createInitialState,
   GameAction,
   GameState,
-  getClueSheet,
   getCode,
   getEncryptor,
-  getResult,
-  getScore,
-  getTokens,
-  isValidCode,
+  isLastTurn,
   MAX_ROUNDS,
   normalizeState,
 } from './state';
-import { CODES, KEYWORDS, newGame, quietRounds, reveal, round, run, startGame, TEAMS, turn, wrong } from './testHelpers';
+import { CODES, KEYWORDS, newGame, rounds, run, startGame, TEAMS, turn } from './testHelpers';
 
 describe('starting a game', () => {
   it('a brand-new state is on the setup screen', () => {
@@ -74,58 +69,14 @@ describe('starting a game', () => {
   });
 });
 
-describe('a transmission', () => {
-  it('needs 3 clues, none blank', () => {
-    const s = newGame();
-    expect(run(s, { type: 'SUBMIT_CLUES', clues: ['a', 'b'] }).phase).toBe('ENCRYPT');
-    expect(run(s, { type: 'SUBMIT_CLUES', clues: ['a', ' ', 'c'] }).phase).toBe('ENCRYPT');
-    expect(run(s, { type: 'SUBMIT_CLUES', clues: [' a ', 'b', 'c'] }).clues).toEqual(['a', 'b', 'c']);
-  });
-
-  it('skips interception in round 1', () => {
-    const s = run(newGame(), { type: 'SUBMIT_CLUES', clues: ['a', 'b', 'c'] });
-    expect(s.phase).toBe('DECODE');
-    expect(run(s, { type: 'BACK_TO_INTERCEPT' }).phase).toBe('DECODE');
-  });
-
-  it('has the other team intercept from round 2', () => {
-    const s = run(round(newGame()), { type: 'SUBMIT_CLUES', clues: ['a', 'b', 'c'] });
-    expect(s.round).toBe(2);
-    expect(s.phase).toBe('INTERCEPT');
-  });
-
-  it('ignores invalid guesses', () => {
-    const s = run(round(newGame()), { type: 'SUBMIT_CLUES', clues: ['a', 'b', 'c'] });
-    for (const guess of [[1, 2], [1, 1, 2], [0, 1, 2], [1, 2, 5], [1, 2, 3, 4], [1.5, 2, 3]]) {
-      expect(run(s, { type: 'SUBMIT_INTERCEPT', guess }).phase).toBe('INTERCEPT');
-    }
-  });
-
-  it('keeps the intercept guess hidden until the reveal, and it can be redone', () => {
-    let s = run(round(newGame()), { type: 'SUBMIT_CLUES', clues: ['a', 'b', 'c'] });
-    s = run(s, { type: 'SUBMIT_INTERCEPT', guess: [1, 2, 3] });
-    expect(s.phase).toBe('DECODE');
-    expect(s.interceptGuess).toEqual([1, 2, 3]);
-    expect(s.transmissions).toHaveLength(2);
-    s = run(s, { type: 'BACK_TO_INTERCEPT' });
-    expect(s.phase).toBe('INTERCEPT');
-    expect(s.interceptGuess).toBeNull();
-  });
-
-  it('saves the transmission at the reveal', () => {
-    const s = run(round(newGame()), { type: 'SUBMIT_CLUES', clues: ['a', 'b', 'c'] }, { type: 'SUBMIT_INTERCEPT', guess: [1, 2, 3] }, { type: 'SUBMIT_DECODE', guess: [4, 3, 2] });
+describe('a turn', () => {
+  it('goes ENCRYPT, GUESS, REVEAL', () => {
+    let s = newGame();
+    s = run(s, { type: 'DONE_ENCRYPTING' });
+    expect(s.phase).toBe('GUESS');
+    s = run(s, { type: 'REVEAL_CODE' });
     expect(s.phase).toBe('REVEAL');
-    expect(s.clues).toBeNull();
-    expect(s.interceptGuess).toBeNull();
-    expect(s.transmissions.at(-1)).toEqual({
-      round: 2,
-      team: 0,
-      encryptor: null,
-      code: CODES[0][1],
-      clues: ['a', 'b', 'c'],
-      interceptGuess: [1, 2, 3],
-      decodeGuess: [4, 3, 2],
-    });
+    expect(getCode(s)).toEqual(CODES[0][0]);
   });
 
   it('then passes to team 1 in the same round, then team 0 in the next', () => {
@@ -134,52 +85,23 @@ describe('a transmission', () => {
     expect(getCode(s)).toEqual(CODES[1][0]);
     s = turn(s);
     expect([s.phase, s.activeTeam, s.round]).toEqual(['ENCRYPT', 0, 2]);
+    expect(getCode(s)).toEqual(CODES[0][1]);
   });
 
   it('ignores actions in the wrong phase', () => {
-    const s = newGame();
-    for (const action of [
-      { type: 'DONE_KEYWORDS' },
-      { type: 'SUBMIT_INTERCEPT', guess: [1, 2, 3] },
-      { type: 'SUBMIT_DECODE', guess: [1, 2, 3] },
-      { type: 'BACK_TO_INTERCEPT' },
-      { type: 'NEXT' },
-    ] satisfies GameAction[]) {
-      expect(applyAction(s, action)).toBe(s);
+    const encrypting = newGame();
+    for (const action of [{ type: 'DONE_KEYWORDS' }, { type: 'REVEAL_CODE' }, { type: 'NEXT' }] satisfies GameAction[]) {
+      expect(applyAction(encrypting, action)).toBe(encrypting);
     }
-    const revealed = reveal(s);
-    expect(applyAction(revealed, { type: 'SUBMIT_CLUES', clues: ['a', 'b', 'c'] })).toBe(revealed);
-  });
-});
-
-describe('tokens', () => {
-  it('a correct decode and a missed interception give no tokens', () => {
-    const s = round(round(newGame()));
-    expect(getTokens(s, 0)).toEqual({ interceptions: 0, miscommunications: 0 });
-    expect(getTokens(s, 1)).toEqual({ interceptions: 0, miscommunications: 0 });
-  });
-
-  it('a wrong decode gives the encrypting team a miscommunication', () => {
-    const s = round(newGame(), { miscommunicated: true });
-    expect(getTokens(s, 0)).toEqual({ interceptions: 0, miscommunications: 1 });
-    expect(getScore(s, 0)).toBe(-1);
-  });
-
-  it('a right interception gives the other team an interception', () => {
-    const s = round(round(newGame()), { intercepted: true });
-    expect(getTokens(s, 1)).toEqual({ interceptions: 1, miscommunications: 0 });
-    expect(getScore(s, 1)).toBe(1);
-  });
-
-  it('can give both at once', () => {
-    const s = round(round(newGame()), { intercepted: true, miscommunicated: true });
-    expect(getTokens(s, 0).miscommunications).toBe(1);
-    expect(getTokens(s, 1).interceptions).toBe(1);
+    const guessing = run(encrypting, { type: 'DONE_ENCRYPTING' });
+    for (const action of [{ type: 'DONE_ENCRYPTING' }, { type: 'NEXT' }] satisfies GameAction[]) {
+      expect(applyAction(guessing, action)).toBe(guessing);
+    }
   });
 });
 
 describe('encryptors', () => {
-  it('rotate through each team\'s players, round by round', () => {
+  it("rotate through each team's players, round by round", () => {
     let s = newGame([
       { name: 'Red', players: ['Ann', 'Ben', 'Cat'] },
       { name: 'Blue', players: ['Dan', 'Eve'] },
@@ -187,7 +109,7 @@ describe('encryptors', () => {
     const seen: (string | null)[][] = [];
     for (let i = 0; i < 4; i++) {
       seen.push([getEncryptor(s, 0), getEncryptor(s, 1)]);
-      s = round(s);
+      s = rounds(s);
     }
     expect(seen).toEqual([
       ['Ann', 'Dan'],
@@ -195,7 +117,6 @@ describe('encryptors', () => {
       ['Cat', 'Dan'],
       ['Ann', 'Eve'],
     ]);
-    expect(s.transmissions.map((t) => t.encryptor)).toEqual(['Ann', 'Dan', 'Ben', 'Eve', 'Cat', 'Dan', 'Ann', 'Eve']);
   });
 
   it('are null without players', () => {
@@ -203,116 +124,52 @@ describe('encryptors', () => {
   });
 });
 
-describe('the clue sheet', () => {
-  it('files each clue under the keyword it pointed to', () => {
-    let s = turn(newGame(), { clues: ['red', 'flow', 'king'] }); // code 1-2-3
-    s = turn(s);
-    s = turn(s, { clues: ['tin', 'tower', 'bank'] }); // code 4-3-2
-    expect(getClueSheet(s, 0)).toEqual([
-      [{ round: 1, clue: 'red' }],
-      [
-        { round: 1, clue: 'flow' },
-        { round: 2, clue: 'bank' },
-      ],
-      [
-        { round: 1, clue: 'king' },
-        { round: 2, clue: 'tower' },
-      ],
-      [{ round: 2, clue: 'tin' }],
-    ]);
-    expect(getClueSheet(s, 1).flat()).toHaveLength(3);
-  });
-
-  it('doesn\'t include a transmission until it\'s revealed', () => {
-    const s = run(newGame(), { type: 'SUBMIT_CLUES', clues: ['a', 'b', 'c'] });
-    expect(getClueSheet(s, 0).flat()).toEqual([]);
-  });
-});
-
 describe('the end of the game', () => {
-  it('waits for the end of the round', () => {
-    // Team 0 gets its second interception on team 1's turn in round 3
-    let s = round(round(newGame()), {}, { intercepted: true });
-    s = reveal(turn(s), { intercepted: true });
-    expect(getTokens(s, 0).interceptions).toBe(2);
-    expect(s.phase).toBe('REVEAL');
-    expect(getResult(s)).toBeNull();
-    s = run(s, { type: 'NEXT' });
-    expect(s.phase).toBe('GAME_OVER');
-    expect(getResult(s)).toEqual({ winner: 0, reason: 'interceptions' });
-  });
-
-  it('does not end on the first team\'s turn, even with a second token', () => {
-    let s = round(newGame(), { miscommunicated: true });
-    s = turn(s, { miscommunicated: true });
-    expect(getTokens(s, 0).miscommunications).toBe(2);
-    expect(s.phase).toBe('ENCRYPT');
-    expect(s.activeTeam).toBe(1);
-  });
-
-  it('2 miscommunications lose', () => {
-    const s = round(round(newGame(), { miscommunicated: true }), { miscommunicated: true });
-    expect(s.phase).toBe('GAME_OVER');
-    expect(getResult(s)).toEqual({ winner: 1, reason: 'miscommunications' });
-  });
-
-  it('a team with 2 interceptions and 2 miscommunications goes to the score', () => {
-    // Team 1: 2 interceptions, 2 miscommunications (score 0). Team 0: nothing (score 0)
-    let s = round(newGame(), {}, { miscommunicated: true });
-    s = round(s, { intercepted: true });
-    s = round(s, { intercepted: true }, { miscommunicated: true });
-    expect(s.phase).toBe('GAME_OVER');
-    expect(getResult(s)).toEqual({ winner: null, reason: 'draw' });
-  });
-
-  it('both teams reaching an end in the same round goes to the score', () => {
-    // Team 0 gets 2 interceptions (score 2); team 1 gets 2 interceptions and 1 miscommunication (score 1)
-    let s = round(round(newGame()), { intercepted: true }, { intercepted: true });
-    s = round(s, { intercepted: true }, { intercepted: true, miscommunicated: true });
-    expect(s.phase).toBe('GAME_OVER');
-    expect(getScore(s, 0)).toBe(2);
-    expect(getScore(s, 1)).toBe(1);
-    expect(getResult(s)).toEqual({ winner: 0, reason: 'score' });
-  });
-
-  it('a tie on score is a draw', () => {
-    let s = round(round(newGame()), { intercepted: true }, { intercepted: true });
-    s = round(s, { intercepted: true }, { intercepted: true });
-    expect(getResult(s)).toEqual({ winner: null, reason: 'draw' });
-  });
-
-  it('after the last round with nobody out, the higher score wins', () => {
-    let s = round(round(newGame()), { intercepted: true });
-    s = quietRounds(s, MAX_ROUNDS - 3);
-    expect(s.round).toBe(MAX_ROUNDS);
-    expect(s.phase).toBe('ENCRYPT');
-    s = round(s);
+  it('comes after team 1 has played the last round', () => {
+    let s = rounds(newGame(), MAX_ROUNDS - 1);
+    s = turn(s);
+    expect([s.phase, s.activeTeam, s.round]).toEqual(['ENCRYPT', 1, MAX_ROUNDS]);
+    expect(isLastTurn(s)).toBe(true);
+    s = turn(s);
     expect(s.phase).toBe('GAME_OVER');
     expect(s.round).toBe(MAX_ROUNDS);
-    expect(getResult(s)).toEqual({ winner: 1, reason: 'score' });
   });
 
-  it('after the last round, a tie is a draw', () => {
-    const s = quietRounds(newGame(), MAX_ROUNDS);
-    expect(s.phase).toBe('GAME_OVER');
-    expect(getResult(s)).toEqual({ winner: null, reason: 'draw' });
-    expect(s.transmissions).toHaveLength(MAX_ROUNDS * 2);
+  it('can come early, after any turn, since the notepad decides the winner', () => {
+    const s = rounds(newGame(), 3);
+    expect(run(s, { type: 'END_GAME' }).phase).toBe('GAME_OVER');
+    expect(run(startGame(), { type: 'END_GAME' }).phase).toBe('GAME_OVER');
+    expect(run(createInitialState(), { type: 'END_GAME' }).phase).toBe('SETUP');
   });
 
-  it('nothing but NEW_GAME works once it\'s over', () => {
-    const s = quietRounds(newGame(), MAX_ROUNDS);
+  it("nothing but NEW_GAME works once it's over", () => {
+    const s = run(newGame(), { type: 'END_GAME' });
     expect(applyAction(s, { type: 'NEXT' })).toBe(s);
+    expect(applyAction(s, { type: 'END_GAME' })).toBe(s);
     const fresh = run(s, { type: 'NEW_GAME' });
     expect(fresh.phase).toBe('SETUP');
-    expect(fresh.transmissions).toEqual([]);
     expect(fresh.version).toBe(s.version + 1);
   });
 });
 
 describe('saved games', () => {
-  it('a game survives being saved and loaded', () => {
-    const s = round(round(newGame()), { intercepted: true });
-    expect(normalizeState(JSON.parse(JSON.stringify(s)))).toEqual(s);
+  it('every phase of a real game loads unchanged', () => {
+    const step = (s: GameState): GameState => {
+      const next: Record<string, GameAction['type']> = {
+        KEYWORDS: 'DONE_KEYWORDS',
+        ENCRYPT: 'DONE_ENCRYPTING',
+        GUESS: 'REVEAL_CODE',
+        REVEAL: 'NEXT',
+      };
+      return run(s, { type: next[s.phase] } as GameAction);
+    };
+    const phases = new Set<string>();
+    for (let s = startGame(); ; s = step(s)) {
+      phases.add(s.phase);
+      expect(normalizeState(JSON.parse(JSON.stringify(s)))).toEqual(s);
+      if (s.phase === 'GAME_OVER') break;
+    }
+    expect(phases.size).toBe(5);
   });
 
   it.each([null, 'nonsense', 42, { phase: 'DANCING' }, { phase: 'ENCRYPT', teams: [] }])(
@@ -322,92 +179,18 @@ describe('saved games', () => {
     }
   );
 
-  it('fills in missing fields', () => {
-    const { transmissions: _, ...partial } = newGame();
-    expect(normalizeState(partial).transmissions).toEqual([]);
-  });
-
-  const guessing = () => run(newGame(), { type: 'SUBMIT_CLUES', clues: ['a', 'b', 'c'] });
   it.each<[string, () => unknown]>([
     ['missing codes', () => ({ ...newGame(), codes: undefined })],
     ['too few codes', () => ({ ...newGame(), codes: [CODES[0].slice(1), CODES[1]] })],
     ['a team without keywords', () => ({ ...newGame(), teams: [{ name: 'Red', players: [] }, newGame().teams[1]] })],
     ['a round out of range', () => ({ ...newGame(), round: MAX_ROUNDS + 1 })],
-    ['no clues while guessing', () => ({ ...guessing(), clues: null })],
-    ['nothing to reveal', () => ({ ...reveal(newGame()), transmissions: [] })],
+    ['a phase from an older version', () => ({ ...newGame(), phase: 'INTERCEPT' })],
   ])('a saved game with %s starts afresh', (_, make) => {
     expect(normalizeState(JSON.parse(JSON.stringify(make()))).phase).toBe('SETUP');
   });
 
-  it('every phase of a real game loads unchanged', () => {
-    // Every guess is right, so both teams intercept twice and it ends in round 3
-    const step = (s: GameState): GameState => {
-      switch (s.phase) {
-        case 'KEYWORDS':
-          return run(s, { type: 'DONE_KEYWORDS' });
-        case 'ENCRYPT':
-          return run(s, { type: 'SUBMIT_CLUES', clues: ['a', 'b', 'c'] });
-        case 'INTERCEPT':
-          return run(s, { type: 'SUBMIT_INTERCEPT', guess: getCode(s)! });
-        case 'DECODE':
-          return run(s, { type: 'SUBMIT_DECODE', guess: getCode(s)! });
-        default:
-          return run(s, { type: 'NEXT' });
-      }
-    };
-    const phases = new Set<string>();
-    for (let s = startGame(); ; s = step(s)) {
-      phases.add(s.phase);
-      expect(normalizeState(JSON.parse(JSON.stringify(s)))).toEqual(s);
-      if (s.phase === 'GAME_OVER') break;
-    }
-    expect(phases.size).toBe(6);
-  });
-});
-
-// Plays many random games, making legal and illegal moves, and checks the rules always hold
-describe('random games', () => {
-  const randomCode = (rand: () => number): Code => {
-    const digits = [1, 2, 3, 4].sort(() => rand() - 0.5);
-    return digits.slice(0, 3);
-  };
-
-  // A small seeded generator, so a failure can be reproduced
-  const seeded = (seed: number) => () => {
-    seed = (seed * 1664525 + 1013904223) % 2 ** 32;
-    return seed / 2 ** 32;
-  };
-
-  it('always end within the last round, with the tokens matching the result', () => {
-    for (let seed = 1; seed <= 300; seed++) {
-      const rand = seeded(seed);
-      let s: GameState = newGame();
-      for (let step = 0; step < 5000 && s.phase !== 'GAME_OVER'; step++) {
-        const guess = rand() < 0.4 ? getCode(s)! : rand() < 0.5 ? wrong(getCode(s)!) : randomCode(rand);
-        const actions: GameAction[] = [
-          { type: 'SUBMIT_CLUES', clues: ['a', 'b', 'c'] },
-          { type: 'SUBMIT_INTERCEPT', guess },
-          { type: 'SUBMIT_DECODE', guess },
-          { type: 'BACK_TO_INTERCEPT' },
-          { type: 'NEXT' },
-          { type: 'DONE_KEYWORDS' },
-        ];
-        s = run(s, actions[Math.floor(rand() * actions.length)]);
-        expect(s.round).toBeLessThanOrEqual(MAX_ROUNDS);
-        expect(s.transmissions.every((t) => isValidCode(t.code) && t.clues.length === 3)).toBe(true);
-      }
-      expect(s.phase).toBe('GAME_OVER');
-      const result = getResult(s)!;
-      const [a, b] = [getTokens(s, 0), getTokens(s, 1)];
-      if (result.reason === 'interceptions') expect(getTokens(s, result.winner).interceptions).toBeGreaterThanOrEqual(2);
-      if (result.reason === 'miscommunications') {
-        expect(getTokens(s, result.winner === 0 ? 1 : 0).miscommunications).toBeGreaterThanOrEqual(2);
-      }
-      if (s.round < MAX_ROUNDS) {
-        expect(Math.max(a.interceptions, a.miscommunications, b.interceptions, b.miscommunications)).toBeGreaterThanOrEqual(2);
-      }
-      // Every finished round has exactly one transmission per team
-      expect(s.transmissions).toHaveLength(s.round * 2);
-    }
+  it('drops fields from an older version', () => {
+    const old = { ...newGame(), clues: ['a', 'b', 'c'], transmissions: [] };
+    expect(normalizeState(old)).toEqual(newGame());
   });
 });
