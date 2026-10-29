@@ -35,14 +35,33 @@ export const drawCodes = (rand: Rand = Math.random): Code[][] =>
 const GAME_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 export const GAME_CODE_LENGTH = 4;
 
-export const makeGameCode = (rand: Rand = Math.random): string =>
-  Array.from({ length: GAME_CODE_LENGTH }, () => GAME_CODE_ALPHABET[Math.floor(rand() * GAME_CODE_ALPHABET.length)]).join('');
+// What the deal depends on. Bump the number when the deal itself changes; changes to the word list are picked up
+// automatically.
+const dealVersion = (words: string[]) => `1:${words.join(',')}`;
+
+// The last character of a game code checks the rest against this version of the deal, so a phone on a different
+// version (or a typo) is caught instead of quietly dealing different keywords
+const checkCharacter = (body: string, words: string[]) =>
+  GAME_CODE_ALPHABET[Math.floor(seededRand(`${dealVersion(words)}/${body}`)() * GAME_CODE_ALPHABET.length)];
+
+export function makeGameCode(rand: Rand = Math.random, words: string[] = WORDS): string {
+  const body = Array.from(
+    { length: GAME_CODE_LENGTH - 1 },
+    () => GAME_CODE_ALPHABET[Math.floor(rand() * GAME_CODE_ALPHABET.length)]
+  ).join('');
+  return body + checkCharacter(body, words);
+}
 
 // What someone typed, tidied up: upper case, no spaces
 export const cleanGameCode = (input: string) => input.toUpperCase().replace(/\s/g, '');
 
-export const isValidGameCode = (code: string) =>
+// The right length and characters, whatever version made it
+export const isWellFormedGameCode = (code: string) =>
   code.length === GAME_CODE_LENGTH && [...code].every((c) => GAME_CODE_ALPHABET.includes(c));
+
+// A game code this version of the app can deal from
+export const isValidGameCode = (code: string, words: string[] = WORDS) =>
+  isWellFormedGameCode(code) && code.endsWith(checkCharacter(code.slice(0, -1), words));
 
 // A repeatable random number generator for a game code (FNV-1a hash, then mulberry32)
 export function seededRand(seed: string): Rand {

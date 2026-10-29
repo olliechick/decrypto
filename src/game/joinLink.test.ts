@@ -12,7 +12,12 @@ describe('join links', () => {
   });
 
   it('tidy up a code typed into the address by hand', () => {
-    expect(readJoinCode('?join=k7q2')).toBe('K7Q2');
+    const code = makeGameCode();
+    expect(readJoinCode(`?join=${code.toLowerCase()}`)).toBe(code);
+  });
+
+  it("keep a code from a different version, so the setup screen can explain what's wrong", () => {
+    expect(readJoinCode('?join=K7Q2')).toBe('K7Q2');
   });
 
   it.each(['', '?', '?other=K7Q2', '?join=', '?join=K7Q', '?join=K0Q2'])('ignore %j', (search) => {

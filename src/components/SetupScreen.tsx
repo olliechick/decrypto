@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { cleanGameCode, GAME_CODE_LENGTH, isValidGameCode, makeGameCode } from '../game/random';
+import { cleanGameCode, GAME_CODE_LENGTH, isValidGameCode, isWellFormedGameCode, makeGameCode } from '../game/random';
 import type { TeamIndex } from '../game/state';
 import { TEAM_NAMES, TEAM_STYLES } from '../utils/teamStyles';
 import { Button } from './Button';
@@ -30,6 +30,9 @@ export function SetupScreen({ joinCode, onStart }: SetupScreenProps) {
   const styles = TEAM_STYLES[team];
   const cleanCode = cleanGameCode(code);
   const codeError = mode === 'join' && !isValidGameCode(cleanCode);
+  // A whole code that doesn't check out was mistyped, or made by a different version of the app (so it would deal
+  // different keywords). From a QR code it can't be a typo.
+  const codeMismatch = codeError && isWellFormedGameCode(cleanCode);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -80,6 +83,13 @@ export function SetupScreen({ joinCode, onStart }: SetupScreenProps) {
                 placeholder="e.g. K7Q2"
                 className="w-full rounded-lg bg-transparent ring-1 ring-current/30 px-3 py-2 text-3xl font-mono font-black uppercase tracking-widest"
               />
+              {codeMismatch && (
+                <span role="alert" className="block text-sm font-bold text-red-600">
+                  {cleanCode === joinCode
+                    ? "This QR code is from a different version of the app. Reload the app on both phones, then start a new game."
+                    : "That code doesn't work. Check it, and if it's right, reload the app on both phones so they're on the same version."}
+                </span>
+              )}
             </label>
           )}
           <label className="block space-y-1">

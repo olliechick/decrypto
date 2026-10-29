@@ -7,6 +7,7 @@ import {
   drawKeywords,
   GAME_CODE_LENGTH,
   isValidGameCode,
+  isWellFormedGameCode,
   makeGameCode,
   seededRand,
 } from './random';
@@ -62,10 +63,38 @@ describe('game codes', () => {
   });
 
   it('are tidied up when typed', () => {
+    const code = makeGameCode();
     expect(cleanGameCode(' ab cd ')).toBe('ABCD');
-    expect(isValidGameCode(cleanGameCode('k7q2'))).toBe(true);
-    expect(isValidGameCode('ABC')).toBe(false);
-    expect(isValidGameCode('AB0D')).toBe(false);
+    expect(isValidGameCode(cleanGameCode(` ${code.slice(0, 2).toLowerCase()} ${code.slice(2)}`))).toBe(true);
+    expect(isWellFormedGameCode('ABC')).toBe(false);
+    expect(isWellFormedGameCode('AB0D')).toBe(false);
+  });
+
+  it('catch a mistyped character', () => {
+    const code = makeGameCode();
+    let caught = 0;
+    for (let i = 0; i < code.length; i++) {
+      for (const c of 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789') {
+        if (c === code[i]) continue;
+        const typo = code.slice(0, i) + c + code.slice(i + 1);
+        expect(isWellFormedGameCode(typo)).toBe(true);
+        if (!isValidGameCode(typo)) caught++;
+      }
+    }
+    // A check character can't catch every typo, but it should catch nearly all of them
+    expect(caught / (code.length * 31)).toBeGreaterThan(0.9);
+  });
+
+  it("are turned down by a version of the app with a different word list, which would deal different keywords", () => {
+    const words = [...WORDS];
+    const other = [...WORDS.slice(0, -1), 'zeppelin'];
+    let rejected = 0;
+    for (let i = 0; i < 200; i++) {
+      const code = makeGameCode(Math.random, words);
+      expect(isValidGameCode(code, words)).toBe(true);
+      if (!isValidGameCode(code, other)) rejected++;
+    }
+    expect(rejected).toBeGreaterThan(180);
   });
 });
 

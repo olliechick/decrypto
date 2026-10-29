@@ -5,6 +5,7 @@ import { Overlay } from './components/Overlay';
 import { SetupScreen } from './components/SetupScreen';
 import { TeamScreen } from './components/TeamScreen';
 import { readJoinCode, withoutJoinCode } from './game/joinLink';
+import { isValidGameCode } from './game/random';
 import { useGame } from './hooks/useGame';
 import { useWakeLock } from './hooks/useWakeLock';
 
@@ -20,8 +21,9 @@ export default function App() {
     if (window.location.search) window.history.replaceState(null, '', withoutJoinCode(window.location.href));
   }, []);
 
-  // Scanned on a phone with a game already going: check before throwing that game away
-  if (joinCode && game.phase !== 'SETUP') {
+  // Scanned on a phone with a game already going: check before throwing that game away. A code from a different
+  // version of the app is only explained on the setup screen, so it never ends a game.
+  if (joinCode && isValidGameCode(joinCode) && game.phase !== 'SETUP') {
     return (
       <Overlay title={`Join game ${joinCode}?`} onClose={() => setJoinCode(null)}>
         <p className="text-white/80">This phone already has a game going. Joining the new one ends it.</p>
