@@ -5,7 +5,7 @@ import { Button } from './Button';
 
 interface GateProps {
   team: TeamIndex;
-  title: string; // who to pass the phone to, e.g. "Pass the phone to Black's encryptor"
+  title: string; // who should look, e.g. "Only Ann should look"
   hint?: string;
   children: ReactNode; // the secret, only shown after "Show me"
 }
