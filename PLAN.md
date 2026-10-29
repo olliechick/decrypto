@@ -1,9 +1,10 @@
 # Decrypto MVP plan
 
 > **Changed after the MVP was built:** clues, guesses and tokens now go on the printed notepad
-> ([PDF](https://portalgames.blob.core.windows.net/decrypto/Decrypto-Notatnik.pdf)). The app only deals the
-> keywords and shows the codes, so the clue entry, code picker, tokens, clue sheets and winner described below have
-> been removed. See ARCHITECTURE.md for how it works now.
+> ([PDF](https://portalgames.blob.core.windows.net/decrypto/Decrypto-Notatnik.pdf)), and each team has its own phone,
+> propped up showing its keywords, instead of sharing one. The app only deals the keywords (from a shared game code,
+> with no syncing) and shows the codes. Most of the one-phone plan below no longer applies; see ARCHITECTURE.md for how
+> it works now.
 
 A plan for a first playable version of Decrypto: two teams in the same room, **one phone** passed around. It follows Outburst's approach: a pure reducer for the rules, state saved in `localStorage`, no server.
 

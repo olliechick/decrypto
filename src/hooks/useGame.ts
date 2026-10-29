@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef } from 'react';
-import { drawCodes, drawKeywords } from '../game/random';
-import { applyAction, createInitialState, GameAction, GameState, normalizeState, TeamSetup } from '../game/state';
+import { deal } from '../game/random';
+import { applyAction, createInitialState, GameAction, GameState, normalizeState, TeamIndex } from '../game/state';
 import { useLocalStorageState } from './useLocalStorageState';
 
 const STORAGE_KEY = 'decrypto:gameState:v1';
@@ -25,13 +25,14 @@ export function useGame() {
 
   const actions = useMemo(
     () => ({
-      // The keywords and codes are drawn here, so the reducer stays pure
-      startGame: (teams: TeamSetup[]) =>
-        dispatch({ type: 'START_GAME', teams, keywords: drawKeywords(), codes: drawCodes() }),
-      doneKeywords: () => dispatch({ type: 'DONE_KEYWORDS' }),
-      doneEncrypting: () => dispatch({ type: 'DONE_ENCRYPTING' }),
+      // The deal comes from the game code, so both phones get the same one; the reducer stays pure
+      startGame: (gameCode: string, team: TeamIndex, players: string[]) => {
+        const { keywords, codes } = deal(gameCode);
+        dispatch({ type: 'START_GAME', gameCode, team, players, keywords: keywords[team], codes: codes[team] });
+      },
       revealCode: () => dispatch({ type: 'REVEAL_CODE' }),
-      next: () => dispatch({ type: 'NEXT' }),
+      hideCode: () => dispatch({ type: 'HIDE_CODE' }),
+      nextRound: () => dispatch({ type: 'NEXT_ROUND' }),
       endGame: () => dispatch({ type: 'END_GAME' }),
       newGame: () => dispatch({ type: 'NEW_GAME' }),
     }),

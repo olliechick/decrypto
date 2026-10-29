@@ -14,4 +14,5 @@ export const TEAM_STYLES: Record<TeamIndex, { card: string; muted: string; butto
   },
 };
 
-export const DEFAULT_TEAM_NAMES = ['Black', 'White'];
+// The phone that starts the game is Black; the one that joins is White
+export const TEAM_NAMES = ['Black', 'White'];

@@ -4,40 +4,57 @@ How Decrypto is put together, and why. For how to play and how to run it, see [R
 
 ## The big picture
 
-- **The app only deals and shows secrets.** It deals each team's keywords and shows each encryptor their code. Clues, guesses and tokens go on the printed notepad, so the app never needs to know them or work out who won.
-- **No server.** The app is a static site on Netlify. Both teams share one phone, so there's nothing to sync.
-- **One reducer, one screen per phase.** The game's phases are in [`src/game/state.ts`](src/game/state.ts). [`App.tsx`](src/App.tsx) shows one screen for each `phase`.
+```
+ team Black's phone                         team White's phone
+ ┌───────────────────────┐                  ┌───────────────────────┐
+ │ Start a new game      │   game code      │ Join: types the code  │
+ │ shows code "K7Q2" ────┼── read aloud ──▶ │                       │
+ │                       │                  │                       │
+ │ deal("K7Q2")[0]       │  (no network)    │ deal("K7Q2")[1]       │
+ │ keywords + 8 codes    │                  │ keywords + 8 codes    │
+ └───────────────────────┘                  └───────────────────────┘
+          clues, guesses and tokens: on the printed notepad
+```
+
+- **Each team has its own phone**, propped up showing its keywords. The encryptor taps to see the round's code.
+- **The app only deals and shows secrets.** Clues, guesses and tokens go on the printed notepad, so the app never needs to know them or work out who won.
+- **The phones never talk to each other.** There's nothing to keep in step during the game: each phone only shows its own team's words and codes, and the teams play the rounds together. The only thing the phones have to agree on is the deal, so the teams never get the same keyword. They agree by both dealing from the same game code ([`random.ts`](src/game/random.ts)), so no server or network is needed.
 - **Saved in `localStorage`.** [`useGame.ts`](src/hooks/useGame.ts) runs actions through the reducer and saves the whole state, so a refresh or a closed tab loses nothing.
+
+## The deal
+
+- `makeGameCode` makes a 4-character code from 32 letters and digits, leaving out 0, O, 1 and I so it can be read across the table. `cleanGameCode` tidies what's typed (upper case, no spaces).
+- `deal(gameCode)` seeds a random number generator from the code (`seededRand`: an FNV-1a hash, then mulberry32), shuffles the word list and takes 8 different words. Team 0 (the phone that started) gets the first 4 and team 1 (the phone that joined) gets the next 4, so the teams never share a word. Each team gets 8 codes from the same generator.
+- **The deal depends on the word list and the order of the draws.** Changing either changes what every game code deals, so both phones must be on the same version. A deploy mid-game only matters if one phone reloads to the new version and starts a new game, since each saved game keeps its own keywords and codes.
+- Another phone that knows the game code could work out the other team's keywords. That's fine for a party game: nothing ever shows them.
 
 ## Game state
 
-- `GameState` is the whole game: the two teams (names, players and keywords), a code for every round for each team (`codes[team][round - 1]`), the round, and whose turn it is (`activeTeam`).
-- `applyAction(state, action)` is a pure reducer. It ignores actions that aren't allowed in the current phase, so a stray tap can't break the game.
-- **Randomness stays outside the reducer.** `useGame`'s `startGame` draws the keywords and every round's codes up front ([`random.ts`](src/game/random.ts)) and passes them in with `START_GAME`. Tests pass their own.
+All of it is in [`src/game/state.ts`](src/game/state.ts):
 
-### Phases
+- `GameState` is one phone's game: the game code, which team this phone is, its players, its keywords, its 8 codes, the round, and whether this round's code has been revealed.
+- `applyAction(state, action)` is a pure reducer. It ignores actions that aren't allowed, so a stray tap can't break the game. `useGame`'s `startGame` deals from the game code and passes this team's keywords and codes in with `START_GAME`, so the reducer has no randomness.
 
 ```
-SETUP ─START_GAME─▶ KEYWORDS (team 0, then team 1) ─DONE_KEYWORDS─▶ ┐
-                                                                     │
-  ┌──────────────────────── each round: team 0, then team 1 ◀───────┘
-  │  ENCRYPT ──DONE_ENCRYPTING──▶ GUESS ──REVEAL_CODE──▶ REVEAL
-  └──NEXT──▶ the other team's ENCRYPT, the next round, or GAME_OVER after round 8
-
-END_GAME: from any phase in play to GAME_OVER (someone has won on the notepad)
+SETUP ─START_GAME─▶ PLAYING: round 1 … 8 ─────────────────────────────▶ GAME_OVER
+                      code hidden ─REVEAL_CODE─▶ code shown ─NEXT_ROUND─▶ next round, code hidden
+                                  ◀─HIDE_CODE──             (after round 8: GAME_OVER)
+                    END_GAME: from PLAYING at any time (someone has won on the notepad)
 ```
 
-- **ENCRYPT** is secret: the encryptor sees the code and their keywords.
-- **GUESS** is public: the teams write their guesses down. The encryptor can see the code again behind a gate.
-- **REVEAL** shows the code to everyone.
-- **GAME_OVER** comes after team 1's turn in round 8, or from **End game**, since only the notepad knows when someone has won. Everyone's keywords are shown only when asked, so the keyword-guessing tiebreaker can happen first.
-- **Encryptors** rotate through each team's players by round (`getEncryptor`). Without players, the app just says "team X's encryptor".
+- `NEXT_ROUND` only works once the code has been revealed, so a stray tap can't skip a round's code. `HIDE_CODE` undoes a reveal tapped too soon.
+- **Encryptors** rotate through the team's players by round (`getEncryptor`). Without players, the app just says "Encryptor".
 
-## Keeping secrets on one phone
+## Keeping the code secret
 
-- Every secret (a team's keywords, the code) is behind a [`Gate`](src/components/Gate.tsx): "Pass the phone to …" and **Show me**. Screens after a secret never show it, so the phone can be handed on.
-- A gate gets a `key` for each new secret, so it always starts hidden. It hides itself again when the page is hidden (the phone is locked or another app is opened).
-- [`Button`](src/components/Button.tsx) ignores taps for its first half second (`ARM_DELAY_MS`), so a double tap can't also press the button that appears in its place, such as **Show me** on the next gate.
+- The code is behind a [`Gate`](src/components/Gate.tsx) ("Only Ann should look" → **Show me**) in an overlay, so the encryptor can pick the phone up away from their team. The gate starts hidden each time it opens, and hides itself again if the page is hidden (the phone is locked or another app is opened).
+- [`Button`](src/components/Button.tsx) ignores taps for its first half second (`ARM_DELAY_MS`), so a double tap can't also press the button that appears in its place.
+
+## The propped-up phone
+
+- [`useWakeLock`](src/hooks/useWakeLock.ts) keeps the screen on while a game is in progress (the Screen Wake Lock API). Browsers drop the lock when the page is hidden, so it asks again when the page is visible. Where it isn't supported, the phone just sleeps as normal.
+- [`KeywordsCard`](src/components/KeywordsCard.tsx) shows one keyword per row, each as big as fits on one line: the font size comes from the screen width and the word's length. Every word in the list fits on one line on a 320px-wide phone.
+- Team Black (the phone that started) is black and team White is white, as in the board game ([`teamStyles.ts`](src/utils/teamStyles.ts)).
 
 ## What's stored in the browser
 
@@ -45,12 +62,6 @@ END_GAME: from any phase in play to GAME_OVER (someone has won on the notepad)
 | --- | --- |
 | `decrypto:gameState:v1` | The whole `GameState` (`useGame.ts`) |
 
-- **`normalizeState` checks a saved game** before using it. Anything a screen couldn't show (missing codes or keywords, a phase that no longer exists, and so on) starts a fresh game instead of crashing. Fields from older versions (the clues and guesses the app used to store) are dropped.
+- **`normalizeState` checks a saved game** before using it. Anything a screen couldn't show (no game code, missing codes or keywords, a game saved by the older one-phone version, and so on) starts afresh instead of crashing.
 - When adding a field to `GameState`, give it a default in `createInitialState` and copy it in `normalizeState`.
-- **Changing the `v1` throws away everyone's saved game.** Only do this for a change `normalizeState` can't repair.
-
-## UI
-
-- Every screen is laid out for a phone held upright ([`Screen`](src/components/Screen.tsx)).
-- Team 0 is black and team 1 is white, as in the board game ([`teamStyles.ts`](src/utils/teamStyles.ts)).
-- [`GameMenu`](src/components/GameMenu.tsx), on the encrypt, guess and reveal screens, has a team's own keywords (behind a gate), how to play (with a link to the notepad PDF), and end game.
+- Tabs in the same browser share the saved game, so two "phones" on one computer need different browser profiles (or a private window).

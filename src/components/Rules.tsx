@@ -7,22 +7,25 @@ export function Rules() {
   return (
     <div className="space-y-3 text-white/80 leading-relaxed">
       <p>
-        This app deals the keywords and the codes. Everything else goes on the{' '}
+        Each team needs a phone, a{' '}
         <a href={NOTEPAD_URL} target="_blank" rel="noreferrer" className="underline">
           printed notepad
-        </a>
-        : one sheet per team, and a pen.
+        </a>{' '}
+        sheet and a pen. One phone starts a game and shows a game code; the other team's phone joins with it. The phones
+        don't need to stay connected.
       </p>
       <p>
-        Each team has 4 secret <b>keywords</b>, numbered 1 to 4. Only your team should ever see yours.
+        Prop your phone up where your team can see it, but the other team can't. It shows your 4 secret{' '}
+        <b>keywords</b>, numbered 1 to 4.
       </p>
       <p>
-        Each round, one player on each team is the <b>encryptor</b>. The app shows them a secret <b>code</b>, such as
-        3-1-4. They write a clue for each keyword in the code, in order, and read the clues out loud.
+        Each round, one player on each team is the <b>encryptor</b>. They pick up the phone and tap to see a secret{' '}
+        <b>code</b>, such as 3-1-4, then write a clue for each keyword in the code, in order, and read the clues out
+        loud.
       </p>
       <p>
         From round 2, the other team writes down its guess at the code (an <b>intercept</b>). The encryptor's own team
-        writes down its guess too (the encryptor stays quiet). Then reveal the code on the phone.
+        writes down its guess too (the encryptor stays quiet). Then tap <b>Reveal to all</b>.
       </p>
       <ul className="list-disc pl-5 space-y-1">
         <li>

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
-import type { TeamSetup } from '../game/state';
-import { DEFAULT_TEAM_NAMES, TEAM_STYLES } from '../utils/teamStyles';
+import { cleanGameCode, GAME_CODE_LENGTH, isValidGameCode, makeGameCode } from '../game/random';
+import type { TeamIndex } from '../game/state';
+import { TEAM_NAMES, TEAM_STYLES } from '../utils/teamStyles';
 import { Button } from './Button';
 import { Overlay } from './Overlay';
 import { Rules } from './Rules';
@@ -12,66 +13,89 @@ const splitPlayers = (text: string) =>
     .map((p) => p.trim())
     .filter(Boolean);
 
-// Team names and (optionally) players. With players, the app says whose turn it is to be the encryptor.
-export function SetupScreen({ onStart }: { onStart: (teams: TeamSetup[]) => void }) {
-  const [names, setNames] = useState(DEFAULT_TEAM_NAMES);
-  const [players, setPlayers] = useState(['', '']);
+// One phone starts a game and gets a game code; the other team's phone joins with that code. Both then deal the same
+// keywords from it, so the phones never need to talk to each other.
+export function SetupScreen({ onStart }: { onStart: (gameCode: string, team: TeamIndex, players: string[]) => void }) {
+  const [mode, setMode] = useState<'start' | 'join' | null>(null);
+  const [code, setCode] = useState('');
+  const [players, setPlayers] = useState('');
   const [showRules, setShowRules] = useState(false);
 
-  const trimmed = names.map((n) => n.trim());
-  const error = trimmed.some((n) => !n)
-    ? 'Each team needs a name.'
-    : trimmed[0].toLowerCase() === trimmed[1].toLowerCase()
-      ? 'The teams need different names.'
-      : null;
+  const team: TeamIndex = mode === 'join' ? 1 : 0;
+  const styles = TEAM_STYLES[team];
+  const cleanCode = cleanGameCode(code);
+  const codeError = mode === 'join' && !isValidGameCode(cleanCode);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (error) return;
-    onStart(trimmed.map((name, i) => ({ name, players: splitPlayers(players[i]) })));
+    if (mode === 'start') onStart(makeGameCode(), 0, splitPlayers(players));
+    else if (!codeError) onStart(cleanCode, 1, splitPlayers(players));
   };
-
-  const update = (list: string[], i: number, value: string) => list.map((v, j) => (j === i ? value : v));
 
   return (
     <Screen>
       <div className="text-center space-y-1 pt-4">
         <h1 className="text-5xl font-black tracking-tight">Decrypto</h1>
         <p className="text-white/60">
-          Two teams, one phone, and a printed notepad sheet for each team. Pass the phone round when it tells you to.
+          Each team props up a phone showing its keywords, and keeps notes on a printed notepad sheet.
         </p>
       </div>
-      <form onSubmit={handleSubmit} noValidate className="space-y-4">
-        {[0, 1].map((i) => {
-          const styles = TEAM_STYLES[i as 0 | 1];
-          return (
-            <fieldset key={i} className={`rounded-2xl p-4 space-y-3 ${styles.card}`}>
-              <label className="block space-y-1">
-                <span className={`text-sm font-bold ${styles.muted}`}>Team name</span>
-                <input
-                  value={names[i]}
-                  onChange={(e) => setNames(update(names, i, e.target.value))}
-                  maxLength={20}
-                  className="w-full rounded-lg bg-transparent ring-1 ring-current/30 px-3 py-2 text-xl font-bold"
-                />
-              </label>
-              <label className="block space-y-1">
-                <span className={`text-sm font-bold ${styles.muted}`}>Players (optional, separated by commas)</span>
-                <input
-                  value={players[i]}
-                  onChange={(e) => setPlayers(update(players, i, e.target.value))}
-                  placeholder="e.g. Sam, Alex, Jo"
-                  className="w-full rounded-lg bg-transparent ring-1 ring-current/30 px-3 py-2"
-                />
-              </label>
-            </fieldset>
-          );
-        })}
-        {error && <p className="text-center text-red-300">{error}</p>}
-        <Button type="submit" className="w-full" disabled={Boolean(error)}>
-          Start game
-        </Button>
-      </form>
+
+      {mode === null ? (
+        <div className="space-y-3">
+          <Button className="w-full" onClick={() => setMode('start')}>
+            Start a new game
+          </Button>
+          <Button variant="secondary" className="w-full" onClick={() => setMode('join')}>
+            Join the other team's game
+          </Button>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} noValidate className={`rounded-2xl p-4 space-y-4 ${styles.card}`}>
+          <h2 className="text-2xl font-black">
+            {mode === 'start' ? `You're team ${TEAM_NAMES[0]}` : `You're team ${TEAM_NAMES[1]}`}
+          </h2>
+          <p className={styles.muted}>
+            {mode === 'start'
+              ? "You'll get a game code for the other team's phone to join with."
+              : "Type the game code shown on the other team's phone."}
+          </p>
+          {mode === 'join' && (
+            <label className="block space-y-1">
+              <span className={`text-sm font-bold ${styles.muted}`}>Game code</span>
+              <input
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                maxLength={GAME_CODE_LENGTH + 2}
+                autoComplete="off"
+                autoCapitalize="characters"
+                autoFocus
+                placeholder="e.g. K7Q2"
+                className="w-full rounded-lg bg-transparent ring-1 ring-current/30 px-3 py-2 text-3xl font-mono font-black uppercase tracking-widest"
+              />
+            </label>
+          )}
+          <label className="block space-y-1">
+            <span className={`text-sm font-bold ${styles.muted}`}>Your team's players (optional, separated by commas)</span>
+            <input
+              value={players}
+              onChange={(e) => setPlayers(e.target.value)}
+              placeholder="e.g. Sam, Alex, Jo"
+              className="w-full rounded-lg bg-transparent ring-1 ring-current/30 px-3 py-2"
+            />
+            <span className={`block text-sm ${styles.muted}`}>With names, the app says who's the encryptor each round.</span>
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="custom" className="bg-gray-500/20" onClick={() => setMode(null)}>
+              Back
+            </Button>
+            <Button type="submit" disabled={codeError}>
+              {mode === 'start' ? 'Start' : 'Join'}
+            </Button>
+          </div>
+        </form>
+      )}
+
       <div className="text-center">
         <button type="button" onClick={() => setShowRules(true)} className="text-white/60 underline">
           How to play
