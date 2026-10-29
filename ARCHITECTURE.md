@@ -56,6 +56,7 @@ SETUP ─START_GAME─▶ PLAYING: round 1 … 8 ──────────�
 
 - [`useWakeLock`](src/hooks/useWakeLock.ts) keeps the screen on while a game is in progress (the Screen Wake Lock API). Browsers drop the lock when the page is hidden, so it asks again when the page is visible. Where it isn't supported, the phone just sleeps as normal.
 - [`KeywordsCard`](src/components/KeywordsCard.tsx) shows one keyword per row, each as big as fits on one line: the font size comes from the screen width and the word's length. Every word in the list fits on one line on a 320px-wide phone.
+- **Add to home screen.** [`manifest.webmanifest`](public/manifest.webmanifest) and the Apple tags in `index.html` let the app be added to a phone's home screen, so it opens full screen in portrait, without the browser's address bar. The icon is [`favicon.svg`](public/favicon.svg); the PNGs next to it were rendered from it. There's deliberately no service worker: one would cache old versions, and both phones need the same version (see "The deal").
 - Team Black (the phone that started) is black and team White is white, as in the board game ([`teamStyles.ts`](src/utils/teamStyles.ts)).
 
 ## What's stored in the browser
