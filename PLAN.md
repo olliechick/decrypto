@@ -78,7 +78,7 @@ Mirrors Outburst:
 ## Steps
 
 1. ✅ **Rules engine and tests.** Write `state.ts` with the phases, actions, token scoring, the round-1 rule, the win, lose and tiebreak logic and the 8-round limit. Add tests in `state.test.ts`, including a full scripted game for each way a game can end, and actions that should be ignored in the wrong phase. There's no UI in this step.
-2. **Words and randomness.** Add `words.ts`, `random.ts` and their tests.
+2. ✅ **Words and randomness.** Add `words.ts`, `random.ts` and their tests.
 3. **Playable flow.** Write `useGame` and the screens, in phase order, so a whole game can be played in the browser at phone size. Use big tap targets and portrait layout.
 4. **Clue sheets and the in-game menu.** Add the clue sheet, which can be opened from the INTERCEPT and DECODE screens. Add the gated "see our words" button, new game and a short how-to-play.
 5. **Robustness.**
