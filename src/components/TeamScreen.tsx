@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { joinUrl } from '../game/joinLink';
 import { getCode, getEncryptor, isLastRound, MAX_ROUNDS, type GameState } from '../game/state';
 import type { GameActions } from '../hooks/useGame';
 import { TEAM_NAMES, TEAM_STYLES } from '../utils/teamStyles';
@@ -7,10 +8,11 @@ import { CodeDisplay } from './CodeDisplay';
 import { Gate } from './Gate';
 import { KeywordsCard } from './KeywordsCard';
 import { Overlay } from './Overlay';
+import { QrCode } from './QrCode';
 import { Rules } from './Rules';
 import { Screen } from './Screen';
 
-type Panel = 'code' | 'rules' | 'endGame';
+type Panel = 'code' | 'qr' | 'rules' | 'endGame';
 
 // The team's phone, propped up on the table: the keywords are always on show, the encryptor taps to see the code,
 // and once both teams have written their guesses down the code is revealed to everyone
@@ -41,6 +43,9 @@ export function TeamScreen({ game, actions }: { game: GameState; actions: GameAc
         <div className="rounded-xl bg-emerald-500/15 px-4 py-2 text-center">
           The other phone joins with game code{' '}
           <span className="font-mono text-2xl font-black tracking-widest text-emerald-300">{game.gameCode}</span>
+          <button type="button" onClick={() => setPanel('qr')} className="block mx-auto text-sm text-emerald-300 underline">
+            or by scanning a QR code
+          </button>
         </div>
       )}
 
@@ -90,6 +95,22 @@ export function TeamScreen({ game, actions }: { game: GameState; actions: GameAc
               </Button>
             </div>
           </Gate>
+        </Overlay>
+      )}
+
+      {panel === 'qr' && (
+        <Overlay title="Join this game" onClose={close}>
+          <p className="text-white/70">
+            On the other team's phone, open the camera and point it at this code, then tap the link it shows.
+          </p>
+          <QrCode text={joinUrl(window.location.origin, game.gameCode)} label={`QR code to join game ${game.gameCode}`} />
+          <p className="text-center text-white/70">
+            Or type the game code{' '}
+            <span className="font-mono text-2xl font-black tracking-widest text-emerald-300">{game.gameCode}</span>
+          </p>
+          <Button className="w-full" onClick={close}>
+            Done
+          </Button>
         </Overlay>
       )}
 

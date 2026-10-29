@@ -23,6 +23,7 @@ How Decrypto is put together, and why. For how to play and how to run it, see [R
 
 ## The deal
 
+- **Joining by QR code.** The starting phone can show a QR code ([`QrCode.tsx`](src/components/QrCode.tsx), drawn with `qrcode-generator`) of a join link, `https://…/?join=K7Q2` ([`joinLink.ts`](src/game/joinLink.ts)). The other phone scans it with its normal camera app, which opens the link, so the app needs no camera access of its own. `App.tsx` reads the code once, takes it out of the address (so a refresh doesn't offer to join again) and opens the join form with it filled in. If that phone already has a game going, it asks first.
 - `makeGameCode` makes a 4-character code from 32 letters and digits, leaving out 0, O, 1 and I so it can be read across the table. `cleanGameCode` tidies what's typed (upper case, no spaces).
 - `deal(gameCode)` seeds a random number generator from the code (`seededRand`: an FNV-1a hash, then mulberry32), shuffles the word list and takes 8 different words. Team 0 (the phone that started) gets the first 4 and team 1 (the phone that joined) gets the next 4, so the teams never share a word. Each team gets 8 codes from the same generator.
 - **The deal depends on the word list and the order of the draws.** Changing either changes what every game code deals, so both phones must be on the same version. A deploy mid-game only matters if one phone reloads to the new version and starts a new game, since each saved game keeps its own keywords and codes.

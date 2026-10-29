@@ -15,9 +15,14 @@ const splitPlayers = (text: string) =>
 
 // One phone starts a game and gets a game code; the other team's phone joins with that code. Both then deal the same
 // keywords from it, so the phones never need to talk to each other.
-export function SetupScreen({ onStart }: { onStart: (gameCode: string, team: TeamIndex, players: string[]) => void }) {
-  const [mode, setMode] = useState<'start' | 'join' | null>(null);
-  const [code, setCode] = useState('');
+interface SetupScreenProps {
+  joinCode: string | null; // from a scanned QR code's link, which goes straight to joining
+  onStart: (gameCode: string, team: TeamIndex, players: string[]) => void;
+}
+
+export function SetupScreen({ joinCode, onStart }: SetupScreenProps) {
+  const [mode, setMode] = useState<'start' | 'join' | null>(joinCode ? 'join' : null);
+  const [code, setCode] = useState(joinCode ?? '');
   const [players, setPlayers] = useState('');
   const [showRules, setShowRules] = useState(false);
 
@@ -58,7 +63,9 @@ export function SetupScreen({ onStart }: { onStart: (gameCode: string, team: Tea
           <p className={styles.muted}>
             {mode === 'start'
               ? "You'll get a game code for the other team's phone to join with."
-              : "Type the game code shown on the other team's phone."}
+              : joinCode
+                ? 'The game code from the QR code is filled in.'
+                : "Type the game code shown on the other team's phone, or scan its QR code with your camera."}
           </p>
           {mode === 'join' && (
             <label className="block space-y-1">
@@ -69,7 +76,7 @@ export function SetupScreen({ onStart }: { onStart: (gameCode: string, team: Tea
                 maxLength={GAME_CODE_LENGTH + 2}
                 autoComplete="off"
                 autoCapitalize="characters"
-                autoFocus
+                autoFocus={!joinCode}
                 placeholder="e.g. K7Q2"
                 className="w-full rounded-lg bg-transparent ring-1 ring-current/30 px-3 py-2 text-3xl font-mono font-black uppercase tracking-widest"
               />

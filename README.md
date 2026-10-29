@@ -4,11 +4,11 @@ A web version of the party game Decrypto, built with React, TypeScript, Tailwind
 
 Each team has **its own phone**, propped up where the team can see it, showing the team's four secret keywords. The encryptor taps to see each round's code. Clues, guesses and tokens go on the official printed notepad ([PDF from Portal Games](https://portalgames.blob.core.windows.net/decrypto/Decrypto-Notatnik.pdf)), one sheet per team.
 
-There's no server and no accounts: it's a static site. **The phones never talk to each other.** One phone starts a game and shows a 4-character game code, and the other phone joins by typing it. Both deal from that code, so they agree on who has which keywords (never the same word twice) without syncing. Each phone saves its game in its own browser, so it survives a refresh, and keeps its screen on while a game is in progress.
+There's no server and no accounts: it's a static site. **The phones never talk to each other.** One phone starts a game and shows a 4-character game code, and the other phone joins by typing it or scanning a QR code. Both deal from that code, so they agree on who has which keywords (never the same word twice) without syncing. Each phone saves its game in its own browser, so it survives a refresh, and keeps its screen on while a game is in progress.
 
 ## How to play
 
-- **Set up.** One phone taps **Start a new game** and becomes team Black. The other taps **Join the other team's game**, types the game code and becomes team White. Each can enter its own players (optional), and then the app says whose turn it is to be the encryptor each round.
+- **Set up.** One phone taps **Start a new game** and becomes team Black. The other joins and becomes team White: either tap **Join the other team's game** and type the game code, or tap **or by scanning a QR code** on the first phone and point the second phone's camera at it. The link opens the app with the code filled in. Each can enter its own players (optional), and then the app says whose turn it is to be the encryptor each round.
 - **Each round**, the encryptor picks up their team's phone and taps **see code**. They write a clue on their sheet for each digit of the code (such as 3-1-4), in order, then hide the code and read the clues out loud.
 - From round 2, the other team writes down its **intercept** (its guess at the code). The encryptor's own team writes down its guess. Then **Reveal to all** shows the code, and **On to round …** moves on. A reveal tapped too soon can be hidden again.
   - The other team guessed right: they get an **interception**. Two wins.
