@@ -85,7 +85,7 @@ Mirrors Outburst:
    - The game survives a refresh: it's saved to `localStorage` under a versioned key, with `normalizeState`.
    - Each secret screen hides itself when the phone is locked or the tab is backgrounded.
    - The **Done** button on a gate ignores taps for a moment, so a double tap can't skip a screen.
-6. **Docs and a playtest.** Add rules and how-to-play to the README, and write ARCHITECTURE.md (state machine, secrecy rules, storage keys). Play a full game at phone size in the browser, fix what comes up, then push to deploy.
+6. ✅ **Docs and a playtest.** Add rules and how-to-play to the README, and write ARCHITECTURE.md (state machine, secrecy rules, storage keys). Play a full game at phone size in the browser, fix what comes up, then push to deploy.
 
 ## Not in the MVP (later)
 

@@ -29,7 +29,7 @@ export function TokenBar({ game }: { game: GameState }) {
           );
         })}
       </div>
-      <div className="text-center text-sm text-white/50">
+      <div className="text-center text-xs text-white/50">
         Round {game.round} of {MAX_ROUNDS} · <span className="text-emerald-400">●</span> interceptions{' '}
         <span className="text-red-400">●</span> miscommunications
       </div>

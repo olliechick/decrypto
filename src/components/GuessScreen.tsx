@@ -26,19 +26,19 @@ export function GuessScreen({ game, onIntercept, onDecode, onBackToIntercept, on
     <Screen>
       <GameMenu game={game} onNewGame={onNewGame} />
       <TokenBar game={game} />
-      <div className="space-y-3">
-        <h1 className="text-xl font-bold text-center">
+      <div className="space-y-2">
+        <h1 className="text-lg font-bold text-center">
           {encryptor ? `${encryptor}'s` : `Team ${name}'s`} clues
           {encryptor && <span className="text-white/50"> (team {name})</span>}
         </h1>
         <CluesList clues={game.clues ?? []} />
-        <p className="text-center text-white/60">Read them out loud. Earlier clues are on the clue sheets.</p>
+        <p className="text-center text-sm text-white/60">Read them out loud. Earlier clues are on the clue sheets.</p>
       </div>
-      <div className={`rounded-2xl p-4 space-y-3 ${TEAM_STYLES[guessing].card}`}>
-        <h2 className="text-2xl font-black">
+      <div className={`rounded-2xl p-4 space-y-1 ${TEAM_STYLES[guessing].card}`}>
+        <h2 className="text-xl font-black">
           {intercepting ? `Team ${game.teams[guessing].name}: intercept!` : `Team ${name}: what's the code?`}
         </h2>
-        <p className={TEAM_STYLES[guessing].muted}>
+        <p className={`text-sm ${TEAM_STYLES[guessing].muted}`}>
           {intercepting
             ? `Talk it over quietly, then enter your guess at team ${name}'s code. It stays hidden until the reveal.`
             : game.round === 1

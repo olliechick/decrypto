@@ -13,7 +13,7 @@ export function CodePicker({ submitLabel, onSubmit }: { submitLabel: string; onS
     setSlots((prev) => prev.map((d, i) => (i === slot ? digit : d === digit ? null : d)));
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {slots.map((value, slot) => (
         <div key={slot} className="flex items-center gap-3">
           <span className="w-16 text-sm font-bold text-white/60">Clue {slot + 1}</span>
@@ -25,7 +25,7 @@ export function CodePicker({ submitLabel, onSubmit }: { submitLabel: string; onS
                 role="radio"
                 aria-checked={value === digit}
                 onClick={() => pick(slot, digit)}
-                className={`h-12 rounded-xl text-xl font-black transition ${
+                className={`h-11 rounded-xl text-xl font-black transition ${
                   value === digit ? 'bg-emerald-400 text-black' : 'bg-white/10 hover:bg-white/20'
                 }`}
               >

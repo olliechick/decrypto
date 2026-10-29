@@ -28,7 +28,7 @@ export function GameMenu({ game, onNewGame }: GameMenuProps) {
     <button
       type="button"
       onClick={() => setPanel(p)}
-      className="rounded-lg bg-white/10 px-3 py-2 text-sm font-bold hover:bg-white/20"
+      className="rounded-lg bg-white/10 px-1 py-2 text-xs font-bold hover:bg-white/20"
     >
       {label}
     </button>
@@ -36,8 +36,8 @@ export function GameMenu({ game, onNewGame }: GameMenuProps) {
 
   return (
     <>
-      <nav className="flex flex-wrap gap-2 justify-center">
-        {item('clues', 'Clue sheets')}
+      <nav className="grid grid-cols-4 gap-1.5">
+        {item('clues', 'Clues')}
         {item('words', 'Our words')}
         {item('rules', 'Rules')}
         {item('newGame', 'New game')}
