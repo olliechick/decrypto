@@ -1,0 +1,7 @@
+# Netlify builds and deploys every push to main
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "24"
