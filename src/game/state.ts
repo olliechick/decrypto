@@ -89,13 +89,26 @@ export function normalizeState(stored: unknown): GameState {
   if (!stored || typeof stored !== 'object') return defaults;
   const s = { ...defaults, ...(stored as Partial<GameState>) };
   if (!PHASES.includes(s.phase)) return defaults;
-  if (s.phase !== 'SETUP' && (!Array.isArray(s.teams) || s.teams.length !== 2)) return defaults;
-  return {
+  const state: GameState = {
     ...s,
     teams: Array.isArray(s.teams) ? s.teams : [],
     codes: Array.isArray(s.codes) ? s.codes : [[], []],
     transmissions: Array.isArray(s.transmissions) ? s.transmissions : [],
   };
+  return state.phase === 'SETUP' || isPlayable(state) ? state : defaults;
+}
+
+// Whether a saved game in progress has everything the screens rely on
+function isPlayable(s: GameState): boolean {
+  const teamsOk =
+    s.teams.length === 2 &&
+    s.teams.every((t) => typeof t?.name === 'string' && Array.isArray(t.players) && t.keywords?.length === KEYWORD_COUNT);
+  const codesOk = s.codes.length === 2 && s.codes.every((c) => Array.isArray(c) && c.length === MAX_ROUNDS && c.every(isValidCode));
+  const roundOk = Number.isInteger(s.round) && s.round >= 1 && s.round <= MAX_ROUNDS && (s.activeTeam === 0 || s.activeTeam === 1);
+  const guessing = s.phase === 'INTERCEPT' || s.phase === 'DECODE';
+  const cluesOk = !guessing || (Array.isArray(s.clues) && s.clues.length === CODE_LENGTH);
+  const revealOk = s.phase !== 'REVEAL' || s.transmissions.length > 0;
+  return teamsOk && codesOk && roundOk && cluesOk && revealOk;
 }
 
 export const otherTeam = (team: TeamIndex): TeamIndex => (team === 0 ? 1 : 0);

@@ -326,6 +326,43 @@ describe('saved games', () => {
     const { transmissions: _, ...partial } = newGame();
     expect(normalizeState(partial).transmissions).toEqual([]);
   });
+
+  const guessing = () => run(newGame(), { type: 'SUBMIT_CLUES', clues: ['a', 'b', 'c'] });
+  it.each<[string, () => unknown]>([
+    ['missing codes', () => ({ ...newGame(), codes: undefined })],
+    ['too few codes', () => ({ ...newGame(), codes: [CODES[0].slice(1), CODES[1]] })],
+    ['a team without keywords', () => ({ ...newGame(), teams: [{ name: 'Red', players: [] }, newGame().teams[1]] })],
+    ['a round out of range', () => ({ ...newGame(), round: MAX_ROUNDS + 1 })],
+    ['no clues while guessing', () => ({ ...guessing(), clues: null })],
+    ['nothing to reveal', () => ({ ...reveal(newGame()), transmissions: [] })],
+  ])('a saved game with %s starts afresh', (_, make) => {
+    expect(normalizeState(JSON.parse(JSON.stringify(make()))).phase).toBe('SETUP');
+  });
+
+  it('every phase of a real game loads unchanged', () => {
+    // Every guess is right, so both teams intercept twice and it ends in round 3
+    const step = (s: GameState): GameState => {
+      switch (s.phase) {
+        case 'KEYWORDS':
+          return run(s, { type: 'DONE_KEYWORDS' });
+        case 'ENCRYPT':
+          return run(s, { type: 'SUBMIT_CLUES', clues: ['a', 'b', 'c'] });
+        case 'INTERCEPT':
+          return run(s, { type: 'SUBMIT_INTERCEPT', guess: getCode(s)! });
+        case 'DECODE':
+          return run(s, { type: 'SUBMIT_DECODE', guess: getCode(s)! });
+        default:
+          return run(s, { type: 'NEXT' });
+      }
+    };
+    const phases = new Set<string>();
+    for (let s = startGame(); ; s = step(s)) {
+      phases.add(s.phase);
+      expect(normalizeState(JSON.parse(JSON.stringify(s)))).toEqual(s);
+      if (s.phase === 'GAME_OVER') break;
+    }
+    expect(phases.size).toBe(6);
+  });
 });
 
 // Plays many random games, making legal and illegal moves, and checks the rules always hold

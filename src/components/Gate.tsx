@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { TeamIndex } from '../game/state';
 import { TEAM_STYLES } from '../utils/teamStyles';
 import { Button } from './Button';
@@ -15,6 +15,13 @@ interface GateProps {
 export function Gate({ team, title, hint, children }: GateProps) {
   const [shown, setShown] = useState(false);
   const styles = TEAM_STYLES[team];
+
+  // Hide the secret if the phone is locked or put down on another app, in case it's then picked up by someone else
+  useEffect(() => {
+    const hide = () => document.visibilityState === 'hidden' && setShown(false);
+    document.addEventListener('visibilitychange', hide);
+    return () => document.removeEventListener('visibilitychange', hide);
+  }, []);
 
   if (shown) return <>{children}</>;
   return (

@@ -81,7 +81,7 @@ Mirrors Outburst:
 2. ✅ **Words and randomness.** Add `words.ts`, `random.ts` and their tests.
 3. ✅ **Playable flow.** Write `useGame` and the screens, in phase order, so a whole game can be played in the browser at phone size. Use big tap targets and portrait layout.
 4. ✅ **Clue sheets and the in-game menu.** Add the clue sheet, which can be opened from the menu on the ENCRYPT, INTERCEPT, DECODE and REVEAL screens. Add the gated "see our words" button, new game and a short how-to-play.
-5. **Robustness.**
+5. ✅ **Robustness.**
    - The game survives a refresh: it's saved to `localStorage` under a versioned key, with `normalizeState`.
    - Each secret screen hides itself when the phone is locked or the tab is backgrounded.
    - The **Done** button on a gate ignores taps for a moment, so a double tap can't skip a screen.
