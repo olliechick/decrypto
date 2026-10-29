@@ -2,6 +2,8 @@ import { useState, type FormEvent } from 'react';
 import type { TeamSetup } from '../game/state';
 import { DEFAULT_TEAM_NAMES, TEAM_STYLES } from '../utils/teamStyles';
 import { Button } from './Button';
+import { Overlay } from './Overlay';
+import { Rules } from './Rules';
 import { Screen } from './Screen';
 
 const splitPlayers = (text: string) =>
@@ -14,6 +16,7 @@ const splitPlayers = (text: string) =>
 export function SetupScreen({ onStart }: { onStart: (teams: TeamSetup[]) => void }) {
   const [names, setNames] = useState(DEFAULT_TEAM_NAMES);
   const [players, setPlayers] = useState(['', '']);
+  const [showRules, setShowRules] = useState(false);
 
   const trimmed = names.map((n) => n.trim());
   const error = trimmed.some((n) => !n)
@@ -67,6 +70,16 @@ export function SetupScreen({ onStart }: { onStart: (teams: TeamSetup[]) => void
           Start game
         </Button>
       </form>
+      <div className="text-center">
+        <button type="button" onClick={() => setShowRules(true)} className="text-white/60 underline">
+          How to play
+        </button>
+      </div>
+      {showRules && (
+        <Overlay title="How to play" onClose={() => setShowRules(false)}>
+          <Rules />
+        </Overlay>
+      )}
     </Screen>
   );
 }

@@ -2,6 +2,7 @@ import { getEncryptor, otherTeam, type Code, type GameState } from '../game/stat
 import { TEAM_STYLES } from '../utils/teamStyles';
 import { CluesList } from './CluesList';
 import { CodePicker } from './CodePicker';
+import { GameMenu } from './GameMenu';
 import { Screen } from './Screen';
 import { TokenBar } from './TokenBar';
 
@@ -10,10 +11,11 @@ interface GuessScreenProps {
   onIntercept: (guess: Code) => void;
   onDecode: (guess: Code) => void;
   onBackToIntercept: () => void;
+  onNewGame: () => void;
 }
 
 // The clues are public now. INTERCEPT: the other team guesses the code. DECODE: the encrypting team does.
-export function GuessScreen({ game, onIntercept, onDecode, onBackToIntercept }: GuessScreenProps) {
+export function GuessScreen({ game, onIntercept, onDecode, onBackToIntercept, onNewGame }: GuessScreenProps) {
   const team = game.activeTeam;
   const intercepting = game.phase === 'INTERCEPT';
   const guessing = intercepting ? otherTeam(team) : team;
@@ -22,6 +24,7 @@ export function GuessScreen({ game, onIntercept, onDecode, onBackToIntercept }: 
 
   return (
     <Screen>
+      <GameMenu game={game} onNewGame={onNewGame} />
       <TokenBar game={game} />
       <div className="space-y-3">
         <h1 className="text-xl font-bold text-center">
@@ -29,7 +32,7 @@ export function GuessScreen({ game, onIntercept, onDecode, onBackToIntercept }: 
           {encryptor && <span className="text-white/50"> (team {name})</span>}
         </h1>
         <CluesList clues={game.clues ?? []} />
-        <p className="text-center text-white/60">Read them out loud.</p>
+        <p className="text-center text-white/60">Read them out loud. Earlier clues are on the clue sheets.</p>
       </div>
       <div className={`rounded-2xl p-4 space-y-3 ${TEAM_STYLES[guessing].card}`}>
         <h2 className="text-2xl font-black">

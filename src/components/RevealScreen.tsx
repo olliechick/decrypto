@@ -1,6 +1,7 @@
 import { codesEqual, getRoundEndResult, otherTeam, wasIntercepted, wasMiscommunicated, type Code, type GameState } from '../game/state';
 import { Button } from './Button';
 import { CodeDisplay } from './CodeDisplay';
+import { GameMenu } from './GameMenu';
 import { Screen } from './Screen';
 import { TokenBar } from './TokenBar';
 
@@ -20,7 +21,7 @@ function GuessRow({ label, guess, code, token }: { label: string; guess: Code; c
 }
 
 // The code and both guesses, and any tokens they earned
-export function RevealScreen({ game, onNext }: { game: GameState; onNext: () => void }) {
+export function RevealScreen({ game, onNext, onNewGame }: { game: GameState; onNext: () => void; onNewGame: () => void }) {
   const t = game.transmissions.at(-1)!;
   const name = game.teams[t.team].name;
   const otherName = game.teams[otherTeam(t.team)].name;
@@ -29,6 +30,7 @@ export function RevealScreen({ game, onNext }: { game: GameState; onNext: () => 
 
   return (
     <Screen>
+      <GameMenu game={game} onNewGame={onNewGame} />
       <TokenBar game={game} />
       <div className="text-center space-y-2">
         <h1 className="text-xl font-bold">Team {name}'s code was</h1>

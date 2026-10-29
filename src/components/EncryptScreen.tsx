@@ -2,12 +2,19 @@ import { useState, type FormEvent } from 'react';
 import { getCode, getEncryptor, type GameState } from '../game/state';
 import { Button } from './Button';
 import { CodeDisplay } from './CodeDisplay';
+import { GameMenu } from './GameMenu';
 import { Gate } from './Gate';
 import { KeywordsCard } from './KeywordsCard';
 import { Screen } from './Screen';
 
 // The encryptor privately sees the code and types a clue for each digit
-export function EncryptScreen({ game, onSubmit }: { game: GameState; onSubmit: (clues: string[]) => void }) {
+interface EncryptScreenProps {
+  game: GameState;
+  onSubmit: (clues: string[]) => void;
+  onNewGame: () => void;
+}
+
+export function EncryptScreen({ game, onSubmit, onNewGame }: EncryptScreenProps) {
   const team = game.activeTeam;
   const { name, keywords } = game.teams[team];
   const encryptor = getEncryptor(game, team);
@@ -22,6 +29,7 @@ export function EncryptScreen({ game, onSubmit }: { game: GameState; onSubmit: (
 
   return (
     <Screen>
+      <GameMenu game={game} onNewGame={onNewGame} />
       <Gate
         key={`${game.round}-${team}`}
         team={team}
