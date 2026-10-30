@@ -16,4 +16,5 @@
 - The code is only ever shown behind a `Gate` until it's revealed to everyone.
 - New `GameState` fields need a default in `createInitialState`, and `normalizeState` must still load saved games.
 - Keep the README and ARCHITECTURE.md up to date when behaviour changes.
+- Bump `version` in `package.json` (and `package-lock.json`) for a change people will notice; the app shows it with the commit.
 - Pushing to `main` deploys to production.

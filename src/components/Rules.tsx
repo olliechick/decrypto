@@ -1,4 +1,5 @@
 import { MAX_ROUNDS } from '../game/state';
+import { AppVersion } from './AppVersion';
 
 const NOTEPAD_URL = 'https://portalgames.blob.core.windows.net/decrypto/Decrypto-Notatnik.pdf';
 
@@ -44,6 +45,7 @@ export function Rules() {
         Tip: give clues that your team will get but that don't give the keyword away. Every clue goes on both teams'
         sheets, and the more clues there are, the easier interception gets.
       </p>
+      <AppVersion className="pt-2" />
     </div>
   );
 }

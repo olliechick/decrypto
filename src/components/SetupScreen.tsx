@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { cleanGameCode, GAME_CODE_LENGTH, isValidGameCode, isWellFormedGameCode, makeGameCode } from '../game/random';
 import type { TeamIndex } from '../game/state';
 import { TEAM_NAMES, TEAM_STYLES } from '../utils/teamStyles';
+import { AppVersion } from './AppVersion';
 import { Button } from './Button';
 import { Overlay } from './Overlay';
 import { Rules } from './Rules';
@@ -113,10 +114,11 @@ export function SetupScreen({ joinCode, onStart }: SetupScreenProps) {
         </form>
       )}
 
-      <div className="text-center">
+      <div className="text-center space-y-2">
         <button type="button" onClick={() => setShowRules(true)} className="text-white/60 underline">
           How to play
         </button>
+        <AppVersion />
       </div>
       {showRules && (
         <Overlay title="How to play" onClose={() => setShowRules(false)}>
