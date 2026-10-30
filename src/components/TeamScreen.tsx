@@ -25,7 +25,7 @@ export function TeamScreen({ game, actions }: { game: GameState; actions: GameAc
   const teamName = TEAM_NAMES[game.team];
 
   return (
-    <Screen>
+    <Screen wide>
       <div className="flex items-center justify-between gap-2 text-sm">
         <div className="font-bold">
           Team {teamName} · Round {game.round} of {MAX_ROUNDS}
@@ -43,7 +43,11 @@ export function TeamScreen({ game, actions }: { game: GameState; actions: GameAc
         <div className="rounded-xl bg-emerald-500/15 px-4 py-2 text-center">
           The other phone joins with game code{' '}
           <span className="font-mono text-2xl font-black tracking-widest text-emerald-300">{game.gameCode}</span>
-          <button type="button" onClick={() => setPanel('qr')} className="block mx-auto text-sm text-emerald-300 underline">
+          <button
+            type="button"
+            onClick={() => setPanel('qr')}
+            className="block mx-auto text-sm text-emerald-300 underline landscape:inline landscape:ml-3"
+          >
             or by scanning a QR code
           </button>
         </div>
@@ -52,8 +56,8 @@ export function TeamScreen({ game, actions }: { game: GameState; actions: GameAc
       <KeywordsCard team={game.team} keywords={game.keywords} />
 
       {game.revealed ? (
-        <div className="space-y-3">
-          <div className="text-center space-y-2">
+        <div className="space-y-3 landscape:space-y-0 landscape:grid landscape:grid-cols-[auto_1fr_auto] landscape:items-center landscape:gap-4">
+          <div className="text-center space-y-2 landscape:flex landscape:items-center landscape:gap-3 landscape:space-y-0">
             <div className="font-bold">Round {game.round} code</div>
             <CodeDisplay code={code} />
           </div>

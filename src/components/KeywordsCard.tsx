@@ -1,19 +1,37 @@
+import type { CSSProperties } from 'react';
 import type { TeamIndex } from '../game/state';
 import { TEAM_STYLES } from '../utils/teamStyles';
 
-// As big as each word can be on one line: the row's width (the screen, up to max-w-md, less 7rem of padding and the
-// number) shared between its letters, which are about 0.78em wide in heavy capitals. Short words stop at 3.75rem.
-const wordSize = (word: string) => `min(3.75rem, calc((min(100vw, 28rem) - 7rem) / ${(word.length * 0.78).toFixed(2)}))`;
+// As big as each word can be on one line: the space it has shared between its letters, which are about 0.78em wide in
+// heavy capitals.
+// - Upright, one word per row: the screen (up to max-w-md), less 7rem of padding and the number. Short words stop at
+//   3.75rem.
+// - On its side, the words side by side: a quarter of the screen (up to max-w-5xl), less the gaps and padding. Short
+//   words stop at 4rem, or less on a short screen.
+function wordSizes(word: string): CSSProperties {
+  const letters = (word.length * 0.78).toFixed(2);
+  return {
+    '--upright': `min(3.75rem, calc((min(100vw, 28rem) - 7rem) / ${letters}))`,
+    '--sideways': `min(4rem, 14dvh, calc(((min(100vw, 64rem) - 3.5rem) / 4 - 1rem) / ${letters}))`,
+  } as CSSProperties;
+}
 
-// A team's keywords, numbered 1-4, one per row so they're big enough to read on a phone propped up on the table
+// A team's keywords, numbered 1-4, big enough to read on a phone propped up on the table: one per row upright, side by
+// side on its side
 export function KeywordsCard({ team, keywords }: { team: TeamIndex; keywords: string[] }) {
   const styles = TEAM_STYLES[team];
   return (
-    <ol className="space-y-2">
+    <ol className="space-y-2 landscape:space-y-0 landscape:flex-1 landscape:grid landscape:grid-cols-4 landscape:gap-2">
       {keywords.map((word, i) => (
-        <li key={i} className={`flex items-center gap-4 rounded-2xl px-5 py-4 min-h-24 ${styles.card}`}>
+        <li
+          key={i}
+          className={`flex items-center gap-4 rounded-2xl px-5 py-4 min-h-24 landscape:flex-col landscape:justify-center landscape:gap-2 landscape:px-2 landscape:min-h-[38dvh] ${styles.card}`}
+        >
           <span className={`text-2xl font-black ${styles.muted}`}>{i + 1}</span>
-          <span className="font-black uppercase leading-tight break-words min-w-0" style={{ fontSize: wordSize(word) }}>
+          <span
+            className="font-black uppercase leading-tight break-words min-w-0 [font-size:var(--upright)] landscape:[font-size:var(--sideways)]"
+            style={wordSizes(word)}
+          >
             {word}
           </span>
         </li>
