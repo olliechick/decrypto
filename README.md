@@ -15,7 +15,7 @@ There's no server and no accounts: it's a static site. **The phones never talk t
   - The encryptor's team guessed wrong: they get a **miscommunication**. Two loses.
 - Tokens are kept on the sheets. When someone has won, **End** ends the game. Otherwise it ends after round 8, and the higher score (interceptions minus miscommunications) wins. If it's still level, each team guesses the other team's keywords.
 
-Both phones must be on the same version of the app, because the deal depends on the word list. The last character of each game code is a check that catches a phone on a different version (and most typos): the join form says to reload the app on both phones instead of dealing different keywords. The version is shown under **How to play** on the first screen and at the bottom of the rules, such as `Version 1.0.0 (5cc2672)`: `package.json`'s version and the commit it was built from.
+Both phones must be on the same version of the app, because the deal depends on the word list. The last character of each game code is a check that catches a phone on a different version (and most typos): the join form says to reload the app on both phones instead of dealing different keywords. The version is shown under **How to play** on the first screen and at the bottom of the rules, such as `v2026-10-30.18:14`: when that version was built, in the phone's time zone.
 
 The keywords come from our own list of 420 words in [`src/data/words.ts`](src/data/words.ts) (the official cards are copyrighted).
 
