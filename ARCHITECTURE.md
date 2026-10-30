@@ -23,11 +23,11 @@ How Decrypto is put together, and why. For how to play and how to run it, see [R
 
 ## The deal
 
-- **Joining by QR code.** The starting phone can show a QR code ([`QrCode.tsx`](src/components/QrCode.tsx), drawn with `qrcode-generator`) of a join link, `https://…/?join=K7Q2` ([`joinLink.ts`](src/game/joinLink.ts)). The other phone scans it with its normal camera app, which opens the link, so the app needs no camera access of its own. `App.tsx` reads the code once, takes it out of the address (so a refresh doesn't offer to join again) and opens the join form with it filled in. If that phone already has a game going, it asks first.
+- **Joining by QR code.** The starting phone can show a QR code ([`QrCode.tsx`](src/components/QrCode.tsx), drawn with `qrcode-generator`) of a join link, `https://…/?join=K7Q2` ([`joinLink.ts`](src/game/joinLink.ts)). The other phone scans it with its normal camera app, which opens the link, so the app needs no camera access of its own. `App.tsx` reads the code once, takes it out of the address (so a refresh doesn't offer to join again) and opens the join form with it filled in. If that phone already has a game going, it asks first. A link to the game the phone is already in (its own QR code, say) is ignored, so a phone can't join its own game as the other team.
 - `makeGameCode` makes a 4-character code from 32 letters and digits, leaving out 0, O, 1 and I so it can be read across the table. `cleanGameCode` tidies what's typed (upper case, no spaces).
 - **The last character is a check character**, worked out from the first 3 and the deal's version (`dealVersion`: a number to bump when the deal changes, plus the whole word list). `isValidGameCode` rejects a code made by a version with a different deal, or mistyped, with a 1 in 32 chance of missing it. `isWellFormedGameCode` only checks the length and characters, so a join link from another version still reaches the join form, which explains what's wrong; such a link never ends a game in progress.
 - `deal(gameCode)` seeds a random number generator from the code (`seededRand`: an FNV-1a hash, then mulberry32), shuffles the word list and takes 8 different words. Team 0 (the phone that started) gets the first 4 and team 1 (the phone that joined) gets the next 4, so the teams never share a word. Each team gets 8 codes from the same generator.
-- **The deal depends on the word list and the order of the draws.** Changing either changes what every game code deals, so both phones must be on the same version, which the check character enforces. [`AppVersion`](src/components/AppVersion.tsx) shows the version, the build time from `vite.config.ts` formatted like the home app's (`v2026-10-30.18:14`), on the setup screen and in the rules, for comparing phones by eye. Bump the number in `dealVersion` when changing the draws. A deploy mid-game only matters if one phone reloads to the new version and starts a new game, since each saved game keeps its own keywords and codes.
+- **The deal depends on the word list and the order of the draws.** Changing either changes what every game code deals, so both phones must be on the same version, which the check character enforces. [`AppVersion`](src/components/AppVersion.tsx) shows the version, the build time from `vite.config.ts` formatted like the home app's (`v2026-10-30.18:14`), on the setup screen and in the rules, for comparing phones by eye. Bump the number in `dealVersion` when changing the draws. A phone can keep an installed app open for weeks, so once its copy is more than a week old, [`useNewerVersion`](src/hooks/useNewerVersion.ts) compares its build time with the `build-time` tag in the server's `index.html` (added by `vite.config.ts`), and the setup screen offers to reload if the server's is newer. A deploy mid-game only matters if one phone reloads to the new version and starts a new game, since each saved game keeps its own keywords and codes.
 - Another phone that knows the game code could work out the other team's keywords. That's fine for a party game: nothing ever shows them.
 
 ## Game state
@@ -36,12 +36,14 @@ All of it is in [`src/game/state.ts`](src/game/state.ts):
 
 - `GameState` is one phone's game: the game code, which team this phone is, its players, its keywords, its 8 codes, the round, and whether this round's code has been revealed.
 - `applyAction(state, action)` is a pure reducer. It ignores actions that aren't allowed, so a stray tap can't break the game. `useGame`'s `startGame` deals from the game code and passes this team's keywords and codes in with `START_GAME`, so the reducer has no randomness.
+- **Rejoining.** Since everything comes from the game code, a phone that lost its game can rejoin it: `START_GAME` takes an optional `round` to start from, and the join form can pick either team. The team screen's Rules and End panels and the game over screen show the game code, team and round for this.
 
 ```
 SETUP ─START_GAME─▶ PLAYING: round 1 … 8 ─────────────────────────────▶ GAME_OVER
                       code hidden ─REVEAL_CODE─▶ code shown ─NEXT_ROUND─▶ next round, code hidden
                                   ◀─HIDE_CODE──             (after round 8: GAME_OVER)
                     END_GAME: from PLAYING at any time (someone has won on the notepad)
+                    RESUME_GAME: from GAME_OVER back to PLAYING as it was (ended by mistake)
 ```
 
 - `NEXT_ROUND` only works once the code has been revealed, so a stray tap can't skip a round's code. `HIDE_CODE` undoes a reveal tapped too soon.
@@ -51,7 +53,7 @@ SETUP ─START_GAME─▶ PLAYING: round 1 … 8 ──────────�
 
 - The code is behind a [`Gate`](src/components/Gate.tsx) ("Only Ann should look" → **Show me**) in an overlay, so the encryptor can pick the phone up away from their team. The gate starts hidden each time it opens, and hides itself again if the page is hidden (the phone is locked or another app is opened). Behind it, [`CodeKeywords`](src/components/CodeKeywords.tsx) shows each digit with its keyword, in the code's order (`getCodeKeywords` in `state.ts`), so the encryptor doesn't have to look them up.
 - **Reveal to all** goes through the same kind of card (📣 "Reveal the code to everyone?"), with `onShow` revealing the code instead of showing a secret, so a stray tap can't show the code before both teams have guessed.
-- [`Button`](src/components/Button.tsx) ignores taps for its first half second (`ARM_DELAY_MS`), so a double tap can't also press the button that appears in its place.
+- [`Button`](src/components/Button.tsx) ignores taps for its first half second (`ARM_DELAY_MS`), so a double tap can't also press the button that appears in its place. The team screen's own buttons stay put under an overlay, so `TeamScreen` also ignores taps for half a second after an overlay closes (a double tap on **Close** would otherwise press **End**, which sits in the same place).
 
 ## The propped-up phone
 

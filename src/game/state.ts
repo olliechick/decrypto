@@ -11,7 +11,8 @@ export type Code = number[]; // CODE_LENGTH different digits from 1 to KEYWORD_C
 
 // SETUP: starting a game or joining one with the other phone's game code
 // PLAYING: the keywords are on show; the encryptor can look at this round's code, then reveal it to everyone
-// GAME_OVER: after the last round, or ended early (the notepad says who won)
+// GAME_OVER: after the last round, or ended early (the notepad says who won). Can go back to PLAYING, for a game
+// ended by mistake.
 export type Phase = 'SETUP' | 'PLAYING' | 'GAME_OVER';
 
 // Saved in localStorage
@@ -28,11 +29,13 @@ export interface GameState {
 }
 
 export type GameAction =
-  | { type: 'START_GAME'; gameCode: string; team: TeamIndex; players: string[]; keywords: string[]; codes: Code[] }
+  // `round` is for rejoining a game already under way (from 1, the default)
+  | { type: 'START_GAME'; gameCode: string; team: TeamIndex; players: string[]; keywords: string[]; codes: Code[]; round?: number }
   | { type: 'REVEAL_CODE' }
   | { type: 'HIDE_CODE' }
   | { type: 'NEXT_ROUND' }
   | { type: 'END_GAME' }
+  | { type: 'RESUME_GAME' }
   | { type: 'NEW_GAME' };
 
 export function createInitialState(): GameState {
@@ -117,6 +120,8 @@ export function applyAction(state: GameState, action: GameAction): GameState {
       if (keywords.length !== KEYWORD_COUNT || keywords.some((w) => !w)) return state;
       if (new Set(keywords.map((w) => w.toLowerCase())).size !== KEYWORD_COUNT) return state;
       if (action.codes.length < MAX_ROUNDS || !action.codes.every(isValidCode)) return state;
+      const round = action.round ?? 1;
+      if (!Number.isInteger(round) || round < 1 || round > MAX_ROUNDS) return state;
       return {
         ...createInitialState(),
         phase: 'PLAYING',
@@ -125,6 +130,7 @@ export function applyAction(state: GameState, action: GameAction): GameState {
         players: action.players.map((p) => p.trim()).filter(Boolean),
         keywords,
         codes: action.codes.slice(0, MAX_ROUNDS),
+        round,
         version: state.version,
       };
     }
@@ -148,6 +154,11 @@ export function applyAction(state: GameState, action: GameAction): GameState {
       // The notepad decides the winner, so the game can end at any point
       if (state.phase !== 'PLAYING') return state;
       return { ...state, phase: 'GAME_OVER' };
+
+    case 'RESUME_GAME':
+      // Back to the game as it was, for one ended by mistake
+      if (state.phase !== 'GAME_OVER') return state;
+      return { ...state, phase: 'PLAYING' };
 
     case 'NEW_GAME':
       return { ...createInitialState(), version: state.version };

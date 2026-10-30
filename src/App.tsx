@@ -15,8 +15,11 @@ export default function App() {
   useWakeLock(game.phase === 'PLAYING');
 
   // A scanned QR code opens the app with ?join=CODE. Read it once, then take it out of the address so a refresh
-  // doesn't offer to join again.
-  const [joinCode, setJoinCode] = useState(() => readJoinCode(window.location.search));
+  // doesn't offer to join again. A link to this phone's own game (its own QR code, say) is ignored.
+  const [joinCode, setJoinCode] = useState(() => {
+    const code = readJoinCode(window.location.search);
+    return code === game.gameCode ? null : code;
+  });
   useEffect(() => {
     if (window.location.search) window.history.replaceState(null, '', withoutJoinCode(window.location.href));
   }, []);
@@ -51,6 +54,6 @@ export default function App() {
     case 'PLAYING':
       return <TeamScreen game={game} actions={actions} />;
     case 'GAME_OVER':
-      return <GameOverScreen game={game} onNewGame={actions.newGame} />;
+      return <GameOverScreen game={game} onResume={actions.resumeGame} onNewGame={actions.newGame} />;
   }
 }

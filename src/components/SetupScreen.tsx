@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { cleanGameCode, GAME_CODE_LENGTH, isValidGameCode, isWellFormedGameCode, makeGameCode } from '../game/random';
-import type { TeamIndex } from '../game/state';
+import { MAX_ROUNDS, type TeamIndex } from '../game/state';
+import { useNewerVersion } from '../hooks/useNewerVersion';
 import { TEAM_NAMES, TEAM_STYLES } from '../utils/teamStyles';
 import { AppVersion } from './AppVersion';
 import { Button } from './Button';
@@ -18,7 +19,7 @@ const splitPlayers = (text: string) =>
 // keywords from it, so the phones never need to talk to each other.
 interface SetupScreenProps {
   joinCode: string | null; // from a scanned QR code's link, which goes straight to joining
-  onStart: (gameCode: string, team: TeamIndex, players: string[]) => void;
+  onStart: (gameCode: string, team: TeamIndex, players: string[], round: number) => void;
 }
 
 export function SetupScreen({ joinCode, onStart }: SetupScreenProps) {
@@ -26,8 +27,13 @@ export function SetupScreen({ joinCode, onStart }: SetupScreenProps) {
   const [code, setCode] = useState(joinCode ?? '');
   const [players, setPlayers] = useState('');
   const [showRules, setShowRules] = useState(false);
+  const newerVersion = useNewerVersion();
+  // Rejoining a game this phone lost: as either team, at the round the game is up to
+  const [rejoin, setRejoin] = useState(false);
+  const [rejoinTeam, setRejoinTeam] = useState<TeamIndex>(1);
+  const [rejoinRound, setRejoinRound] = useState(1);
 
-  const team: TeamIndex = mode === 'join' ? 1 : 0;
+  const team: TeamIndex = mode === 'join' ? (rejoin ? rejoinTeam : 1) : 0;
   const styles = TEAM_STYLES[team];
   const cleanCode = cleanGameCode(code);
   const codeError = mode === 'join' && !isValidGameCode(cleanCode);
@@ -37,8 +43,8 @@ export function SetupScreen({ joinCode, onStart }: SetupScreenProps) {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (mode === 'start') onStart(makeGameCode(), 0, splitPlayers(players));
-    else if (!codeError) onStart(cleanCode, 1, splitPlayers(players));
+    if (mode === 'start') onStart(makeGameCode(), 0, splitPlayers(players), 1);
+    else if (!codeError) onStart(cleanCode, team, splitPlayers(players), rejoin ? rejoinRound : 1);
   };
 
   return (
@@ -49,6 +55,19 @@ export function SetupScreen({ joinCode, onStart }: SetupScreenProps) {
           Each team props up a phone showing its keywords, and keeps notes on a printed notepad sheet.
         </p>
       </div>
+
+      {newerVersion && (
+        <div role="status" className="flex items-center justify-between gap-3 rounded-xl bg-amber-400/15 px-4 py-3">
+          <span className="text-sm">A newer version of the app is out. Both phones need to be on the same one.</span>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="shrink-0 rounded-lg bg-amber-400 px-3 py-2 font-bold text-black"
+          >
+            Reload
+          </button>
+        </div>
+      )}
 
       {mode === null ? (
         <div className="space-y-3">
@@ -62,7 +81,7 @@ export function SetupScreen({ joinCode, onStart }: SetupScreenProps) {
       ) : (
         <form onSubmit={handleSubmit} noValidate className={`rounded-2xl p-4 space-y-4 ${styles.card}`}>
           <h2 className="text-2xl font-black">
-            {mode === 'start' ? `You're team ${TEAM_NAMES[0]}` : `You're team ${TEAM_NAMES[1]}`}
+            You're team {TEAM_NAMES[team]}
           </h2>
           <p className={styles.muted}>
             {mode === 'start'
@@ -93,6 +112,44 @@ export function SetupScreen({ joinCode, onStart }: SetupScreenProps) {
               )}
             </label>
           )}
+          {mode === 'join' &&
+            (rejoin ? (
+              <fieldset className="space-y-2">
+                <legend className={`text-sm font-bold ${styles.muted}`}>Rejoining a game: this phone's team and round</legend>
+                <div className="grid grid-cols-3 gap-2">
+                  {([0, 1] as const).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      aria-pressed={rejoinTeam === t}
+                      onClick={() => setRejoinTeam(t)}
+                      className={`rounded-lg px-3 py-2 font-bold ${rejoinTeam === t ? 'ring-2 ring-current' : `ring-1 ring-current/30 ${styles.muted}`}`}
+                    >
+                      {TEAM_NAMES[t]}
+                    </button>
+                  ))}
+                  <select
+                    value={rejoinRound}
+                    onChange={(e) => setRejoinRound(Number(e.target.value))}
+                    aria-label="Round"
+                    className="rounded-lg bg-transparent px-2 py-2 font-bold ring-1 ring-current/30"
+                  >
+                    {Array.from({ length: MAX_ROUNDS }, (_, i) => (
+                      <option key={i} value={i + 1}>
+                        Round {i + 1}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <span className={`block text-sm ${styles.muted}`}>
+                  Enter the players in the same order as before, so the encryptor comes round right.
+                </span>
+              </fieldset>
+            ) : (
+              <button type="button" onClick={() => setRejoin(true)} className={`text-sm underline ${styles.muted}`}>
+                Rejoining a game?
+              </button>
+            ))}
           <label className="block space-y-1">
             <span className={`text-sm font-bold ${styles.muted}`}>Your team's players (optional, separated by commas)</span>
             <input

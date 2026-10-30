@@ -29,6 +29,18 @@ describe('starting a game', () => {
     expect(start(overrides).phase).toBe('SETUP');
   });
 
+  it('START_GAME can rejoin a game at a later round, with that round\'s code and encryptor', () => {
+    const s = start({ players: ['Ann', 'Ben'], round: 4 });
+    expect(s.round).toBe(4);
+    expect(s.revealed).toBe(false);
+    expect(getCode(s)).toEqual(CODES[3]);
+    expect(getEncryptor(s)).toBe('Ben');
+  });
+
+  it.each([0, MAX_ROUNDS + 1, 2.5])('START_GAME at round %s is ignored', (r) => {
+    expect(start({ round: r }).phase).toBe('SETUP');
+  });
+
   it('START_GAME is ignored once a game is under way', () => {
     const s = start();
     expect(applyAction(s, { type: 'START_GAME', gameCode: 'ZZZZ', team: 1, players: [], keywords: ['w', 'x', 'y', 'z'], codes: CODES })).toBe(s);
@@ -95,7 +107,17 @@ describe('the end of the game', () => {
     expect(run(createInitialState(), { type: 'END_GAME' }).phase).toBe('SETUP');
   });
 
-  it("nothing but NEW_GAME works once it's over", () => {
+  it('a game ended by mistake can carry on where it was', () => {
+    const before = run(rounds(start(), 3), { type: 'REVEAL_CODE' });
+    const s = run(before, { type: 'END_GAME' }, { type: 'RESUME_GAME' });
+    expect(s.phase).toBe('PLAYING');
+    expect(s.round).toBe(4);
+    expect(s.revealed).toBe(true);
+    expect(applyAction(before, { type: 'RESUME_GAME' })).toBe(before);
+    expect(applyAction(createInitialState(), { type: 'RESUME_GAME' }).phase).toBe('SETUP');
+  });
+
+  it("nothing but NEW_GAME and RESUME_GAME works once it's over", () => {
     const s = run(start(), { type: 'END_GAME' });
     for (const type of ['REVEAL_CODE', 'HIDE_CODE', 'NEXT_ROUND', 'END_GAME'] as const) {
       expect(applyAction(s, { type })).toBe(s);

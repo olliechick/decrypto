@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { joinUrl } from '../game/joinLink';
 import { getCode, getCodeKeywords, getEncryptor, isLastRound, MAX_ROUNDS, type GameState } from '../game/state';
 import type { GameActions } from '../hooks/useGame';
 import { TEAM_NAMES, TEAM_STYLES } from '../utils/teamStyles';
-import { Button } from './Button';
+import { ARM_DELAY_MS, Button } from './Button';
 import { CodeDisplay } from './CodeDisplay';
 import { CodeKeywords } from './CodeKeywords';
 import { Gate } from './Gate';
@@ -19,7 +19,17 @@ type Panel = 'code' | 'reveal' | 'qr' | 'rules' | 'endGame';
 // and once both teams have written their guesses down the code is revealed to everyone
 export function TeamScreen({ game, actions }: { game: GameState; actions: GameActions }) {
   const [panel, setPanel] = useState<Panel | null>(null);
-  const close = () => setPanel(null);
+  // The buttons under an overlay stay put while it's open, so Button's own guard doesn't cover them: ignore taps just
+  // after an overlay closes, so a double tap on Close (or Done) can't also press End or Reveal to all underneath
+  const closedAt = useRef(0);
+  const close = () => {
+    closedAt.current = Date.now();
+    setPanel(null);
+  };
+  const armed = <T extends unknown[]>(fn: (...args: T) => void) => (...args: T) => {
+    if (Date.now() - closedAt.current >= ARM_DELAY_MS) fn(...args);
+  };
+  const open = (p: Panel) => armed(() => setPanel(p));
   const encryptor = getEncryptor(game);
   const code = getCode(game)!;
   const styles = TEAM_STYLES[game.team];
@@ -32,10 +42,10 @@ export function TeamScreen({ game, actions }: { game: GameState; actions: GameAc
           Team {teamName} · Round {game.round} of {MAX_ROUNDS}
         </div>
         <div className="flex gap-1.5">
-          <button type="button" onClick={() => setPanel('rules')} className="rounded-lg bg-white/10 px-3 py-1.5 font-bold">
+          <button type="button" onClick={open('rules')} className="rounded-lg bg-white/10 px-3 py-1.5 font-bold">
             Rules
           </button>
-          <button type="button" onClick={() => setPanel('endGame')} className="rounded-lg bg-white/10 px-3 py-1.5 font-bold">
+          <button type="button" onClick={open('endGame')} className="rounded-lg bg-white/10 px-3 py-1.5 font-bold">
             End
           </button>
         </div>
@@ -46,7 +56,7 @@ export function TeamScreen({ game, actions }: { game: GameState; actions: GameAc
           <span className="font-mono text-2xl font-black tracking-widest text-emerald-300">{game.gameCode}</span>
           <button
             type="button"
-            onClick={() => setPanel('qr')}
+            onClick={open('qr')}
             className="block mx-auto text-sm text-emerald-300 underline landscape:inline landscape:ml-3"
           >
             or by scanning a QR code
@@ -62,21 +72,21 @@ export function TeamScreen({ game, actions }: { game: GameState; actions: GameAc
             <div className="font-bold">Round {game.round} code</div>
             <CodeDisplay code={code} />
           </div>
-          <Button className="w-full" onClick={actions.nextRound}>
+          <Button className="w-full" onClick={armed(actions.nextRound)}>
             {isLastRound(game) ? 'Finish the game' : `On to round ${game.round + 1}`}
           </Button>
           <div className="text-center">
-            <button type="button" onClick={actions.hideCode} className="text-sm text-white/50 underline">
+            <button type="button" onClick={armed(actions.hideCode)} className="text-sm text-white/50 underline">
               Revealed too soon? Hide it again
             </button>
           </div>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-2">
-          <Button variant="custom" className={styles.button} onClick={() => setPanel('code')}>
+          <Button variant="custom" className={styles.button} onClick={open('code')}>
             {encryptor ? `${encryptor}: see code` : 'Encryptor: see code'}
           </Button>
-          <Button variant="secondary" onClick={() => setPanel('reveal')}>
+          <Button variant="secondary" onClick={open('reveal')}>
             Reveal to all
           </Button>
         </div>
@@ -137,6 +147,7 @@ export function TeamScreen({ game, actions }: { game: GameState; actions: GameAc
 
       {panel === 'rules' && (
         <Overlay title="How to play" onClose={close}>
+          <GameCodeNote game={game} />
           <Rules />
         </Overlay>
       )}
@@ -144,6 +155,7 @@ export function TeamScreen({ game, actions }: { game: GameState; actions: GameAc
       {panel === 'endGame' && (
         <Overlay title="End game" onClose={close}>
           <p className="text-white/80">Has someone won? This ends the game on this phone.</p>
+          <GameCodeNote game={game} />
           <div className="grid grid-cols-2 gap-2">
             <Button variant="secondary" onClick={close}>
               Keep playing
@@ -162,5 +174,16 @@ export function TeamScreen({ game, actions }: { game: GameState; actions: GameAc
         </Overlay>
       )}
     </Screen>
+  );
+}
+
+// So a phone that loses its game (a flat battery, a tap on End by mistake) can join it again where it was
+function GameCodeNote({ game }: { game: GameState }) {
+  return (
+    <p className="rounded-xl bg-white/5 px-4 py-3 text-sm text-white/70">
+      This is game <span className="font-mono font-black tracking-widest text-emerald-300">{game.gameCode}</span>, team{' '}
+      {TEAM_NAMES[game.team]}, round {game.round}. If this phone loses the game, join it again with that code, under{' '}
+      <b>Rejoining a game?</b>
+    </p>
   );
 }
