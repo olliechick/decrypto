@@ -9,8 +9,8 @@ There's no server and no accounts: it's a static site. **The phones never talk t
 ## How to play
 
 - **Set up.** One phone taps **Start a new game** and becomes team Black. The other joins and becomes team White: either tap **Join the other team's game** and type the game code, or tap **or by scanning a QR code** on the first phone and point the second phone's camera at it. The link opens the app with the code filled in. Each can enter its own players (optional), and then the app says whose turn it is to be the encryptor each round.
-- **Each round**, the encryptor picks up their team's phone and taps **see code**. They write a clue on their sheet for each digit of the code (such as 3-1-4), in order, then hide the code and read the clues out loud.
-- From round 2, the other team writes down its **intercept** (its guess at the code). The encryptor's own team writes down its guess. Then **Reveal to all** shows the code, and **On to round …** moves on. A reveal tapped too soon can be hidden again.
+- **Each round**, the encryptor picks up their team's phone and taps **see code**. It shows the code (such as 3-1-4) with the keyword for each digit. They write a clue on their sheet for each one, in order, then hide the code and read the clues out loud.
+- From round 2, the other team writes down its **intercept** (its guess at the code). The encryptor's own team writes down its guess. Then **Reveal to all**, confirmed on the next screen, shows the code, and **On to round …** moves on. A reveal tapped too soon can be hidden again.
   - The other team guessed right: they get an **interception**. Two wins.
   - The encryptor's team guessed wrong: they get a **miscommunication**. Two loses.
 - Tokens are kept on the sheets. When someone has won, **End** ends the game. Otherwise it ends after round 8, and the higher score (interceptions minus miscommunications) wins. If it's still level, each team guesses the other team's keywords.

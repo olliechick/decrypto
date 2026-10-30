@@ -103,6 +103,9 @@ export function getEncryptor(state: GameState, round = state.round): string | nu
 // This round's code
 export const getCode = (state: GameState): Code | null => state.codes[state.round - 1] ?? null;
 
+// The keyword for each digit of this round's code, in the code's order, for the encryptor to write clues for
+export const getCodeKeywords = (state: GameState): string[] => (getCode(state) ?? []).map((d) => state.keywords[d - 1]);
+
 export const isLastRound = (state: GameState) => state.round === MAX_ROUNDS;
 
 export function applyAction(state: GameState, action: GameAction): GameState {

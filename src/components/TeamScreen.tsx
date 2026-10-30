@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { joinUrl } from '../game/joinLink';
-import { getCode, getEncryptor, isLastRound, MAX_ROUNDS, type GameState } from '../game/state';
+import { getCode, getCodeKeywords, getEncryptor, isLastRound, MAX_ROUNDS, type GameState } from '../game/state';
 import type { GameActions } from '../hooks/useGame';
 import { TEAM_NAMES, TEAM_STYLES } from '../utils/teamStyles';
 import { Button } from './Button';
 import { CodeDisplay } from './CodeDisplay';
+import { CodeKeywords } from './CodeKeywords';
 import { Gate } from './Gate';
 import { KeywordsCard } from './KeywordsCard';
 import { Overlay } from './Overlay';
@@ -12,7 +13,7 @@ import { QrCode } from './QrCode';
 import { Rules } from './Rules';
 import { Screen } from './Screen';
 
-type Panel = 'code' | 'qr' | 'rules' | 'endGame';
+type Panel = 'code' | 'reveal' | 'qr' | 'rules' | 'endGame';
 
 // The team's phone, propped up on the table: the keywords are always on show, the encryptor taps to see the code,
 // and once both teams have written their guesses down the code is revealed to everyone
@@ -75,22 +76,22 @@ export function TeamScreen({ game, actions }: { game: GameState; actions: GameAc
           <Button variant="custom" className={styles.button} onClick={() => setPanel('code')}>
             {encryptor ? `${encryptor}: see code` : 'Encryptor: see code'}
           </Button>
-          <Button variant="secondary" onClick={actions.revealCode}>
+          <Button variant="secondary" onClick={() => setPanel('reveal')}>
             Reveal to all
           </Button>
         </div>
       )}
 
       {panel === 'code' && (
-        <Overlay title={`Round ${game.round} code`} onClose={close}>
+        <Overlay title={`Round ${game.round} code`} onClose={close} wide>
           <Gate
             team={game.team}
             title={encryptor ? `Only ${encryptor} should look` : 'Only the encryptor should look'}
             hint="Pick up the phone so the rest of your team can't see."
           >
-            <div className="space-y-5">
-              <CodeDisplay code={code} />
-              <p className="text-white/60 text-center">
+            <div className="space-y-5 landscape:space-y-3">
+              <CodeKeywords team={game.team} code={code} words={getCodeKeywords(game)} />
+              <p className="text-white/60 text-center landscape:text-sm">
                 Write a clue on your sheet for each keyword in the code, in order. Read them out once both encryptors
                 are ready.
               </p>
@@ -99,6 +100,22 @@ export function TeamScreen({ game, actions }: { game: GameState; actions: GameAc
               </Button>
             </div>
           </Gate>
+        </Overlay>
+      )}
+
+      {panel === 'reveal' && (
+        <Overlay title={`Round ${game.round} code`} onClose={close} wide>
+          <Gate
+            team={game.team}
+            emoji="📣"
+            title="Reveal the code to everyone?"
+            hint="Only once both teams have written their guesses on their sheets."
+            buttonLabel="Reveal to all"
+            onShow={() => {
+              close();
+              actions.revealCode();
+            }}
+          />
         </Overlay>
       )}
 

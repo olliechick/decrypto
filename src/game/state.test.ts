@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyAction, createInitialState, getCode, getEncryptor, MAX_ROUNDS, normalizeState } from './state';
+import { applyAction, createInitialState, getCode, getCodeKeywords, getEncryptor, MAX_ROUNDS, normalizeState } from './state';
 import { CODES, KEYWORDS, round, rounds, run, start } from './testHelpers';
 
 describe('starting a game', () => {
@@ -43,6 +43,13 @@ describe('rounds', () => {
     expect(s.round).toBe(2);
     expect(s.revealed).toBe(false);
     expect(getCode(s)).toEqual(CODES[1]);
+  });
+
+  it("give the encryptor this round's keywords in the code's order", () => {
+    // KEYWORDS: 1 apple, 2 river, 3 castle, 4 robot; CODES[1] is 4-3-2
+    expect(getCodeKeywords(start())).toEqual(['apple', 'river', 'castle']);
+    expect(getCodeKeywords(round(start()))).toEqual(['robot', 'castle', 'river']);
+    expect(getCodeKeywords(createInitialState())).toEqual([]);
   });
 
   it("can't move on before the code is revealed, so a stray tap can't skip a code", () => {

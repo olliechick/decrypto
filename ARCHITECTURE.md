@@ -49,7 +49,8 @@ SETUP ─START_GAME─▶ PLAYING: round 1 … 8 ──────────�
 
 ## Keeping the code secret
 
-- The code is behind a [`Gate`](src/components/Gate.tsx) ("Only Ann should look" → **Show me**) in an overlay, so the encryptor can pick the phone up away from their team. The gate starts hidden each time it opens, and hides itself again if the page is hidden (the phone is locked or another app is opened).
+- The code is behind a [`Gate`](src/components/Gate.tsx) ("Only Ann should look" → **Show me**) in an overlay, so the encryptor can pick the phone up away from their team. The gate starts hidden each time it opens, and hides itself again if the page is hidden (the phone is locked or another app is opened). Behind it, [`CodeKeywords`](src/components/CodeKeywords.tsx) shows each digit with its keyword, in the code's order (`getCodeKeywords` in `state.ts`), so the encryptor doesn't have to look them up.
+- **Reveal to all** goes through the same kind of card (📣 "Reveal the code to everyone?"), with `onShow` revealing the code instead of showing a secret, so a stray tap can't show the code before both teams have guessed.
 - [`Button`](src/components/Button.tsx) ignores taps for its first half second (`ARM_DELAY_MS`), so a double tap can't also press the button that appears in its place.
 
 ## The propped-up phone
