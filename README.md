@@ -4,7 +4,7 @@ A web version of the party game Decrypto, built with React, TypeScript, Tailwind
 
 Each team has **its own phone**, propped up where the team can see it, showing the team's four secret keywords. The encryptor taps to see each round's code. Clues, guesses and tokens go on the official printed notepad ([PDF from Portal Games](https://portalgames.blob.core.windows.net/decrypto/Decrypto-Notatnik.pdf)), one sheet per team.
 
-There's no server and no accounts: it's a static site. **The phones never talk to each other.** One phone starts a game and shows a 4-character game code, and the other phone joins by typing it or scanning a QR code. Both deal from that code, so they agree on who has which keywords (never the same word twice) without syncing. Each phone saves its game in its own browser, so it survives a refresh, and keeps its screen on while a game is in progress. Add it to the home screen (Share → Add to Home Screen on an iPhone, or Add to home screen in Chrome's menu) and it opens full screen like an app.
+There's no server and no accounts: it's a static site. **The phones never talk to each other.** One phone starts a game and shows a 4-character game code, and the other phone joins by typing it or scanning a QR code. Both deal from that code, so they agree on who has which keywords (never the same word twice) without syncing. Each phone saves its game in its own browser, so it survives a refresh, and keeps its screen on while a game is in progress. Add it to the home screen (Share → Add to Home Screen on an iPhone, or Install app in Chrome's menu on Android) and it opens full screen like an app. It also opens with no signal, using the last version it loaded.
 
 ## How to play
 
