@@ -20,13 +20,18 @@ export function Rules() {
         <b>keywords</b>, numbered 1 to 4.
       </p>
       <p>
-        Each round, one player on each team is the <b>encryptor</b>. They pick up the phone and tap to see a secret{' '}
-        <b>code</b>, such as 3-1-4, then write a clue for each keyword in the code, in order, and read the clues out
-        loud.
+        Each round, one player on each team is the <b>encryptor</b>, taking turns. They pick up the phone and tap to see a
+        secret <b>code</b>, such as 3-1-4, then write a clue on the sheet for each keyword in the code, in order. Once
+        one encryptor has finished, the other has 30 seconds (tap <b>⏳ 30-second timer</b>).
       </p>
       <p>
-        From round 2, the other team writes down its guess at the code (an <b>intercept</b>). The encryptor's own team
-        writes down its guess too (the encryptor stays quiet). Then tap <b>Reveal to all</b>.
+        A clue is a word or a short phrase about the keyword's meaning, that anyone could know. Nothing about how it's
+        spelt, and no in-jokes only your team would get. Read clues out as written, with no hints in your voice.
+      </p>
+      <p>
+        Team White's encryptor reads their clues out first. From round 2, team Black writes down its guess at the code
+        (an <b>intercept</b>). Team White writes down its guess too (the encryptor stays quiet). Then tap{' '}
+        <b>Reveal to all</b> on team White's phone. Then it's team Black's turn, the other way round.
       </p>
       <ul className="list-disc pl-5 space-y-1">
         <li>
@@ -37,9 +42,10 @@ export function Rules() {
         </li>
       </ul>
       <p>
-        The game ends at the end of a round. If both teams finish at once, or nobody has after round {MAX_ROUNDS}, the
-        higher score wins: interceptions minus miscommunications. Still level? Each team guesses the other team's
-        keywords, and the most right wins.
+        The game ends at the end of a round. If that's not clear cut (both teams win, or a team gets its second
+        interception and its second miscommunication together), or nobody has after round {MAX_ROUNDS}, the higher
+        score wins: interceptions minus miscommunications. Still level? Each team guesses the other team's keywords, and
+        the most right wins. Still level after that? Both teams share the win.
       </p>
       <p>
         Tip: give clues that your team will get but that don't give the keyword away. Every clue goes on both teams'

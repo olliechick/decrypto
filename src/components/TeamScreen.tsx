@@ -12,6 +12,7 @@ import { Overlay } from './Overlay';
 import { QrCode } from './QrCode';
 import { Rules } from './Rules';
 import { Screen } from './Screen';
+import { Timer } from './Timer';
 
 type Panel = 'code' | 'reveal' | 'qr' | 'rules' | 'endGame';
 
@@ -82,13 +83,14 @@ export function TeamScreen({ game, actions }: { game: GameState; actions: GameAc
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2 landscape:grid-cols-[1fr_1fr_auto]">
           <Button variant="custom" className={styles.button} onClick={open('code')}>
             {encryptor ? `${encryptor}: see code` : 'Encryptor: see code'}
           </Button>
           <Button variant="secondary" onClick={open('reveal')}>
             Reveal to all
           </Button>
+          <Timer className="col-span-2 landscape:col-span-1" />
         </div>
       )}
 
@@ -149,6 +151,9 @@ export function TeamScreen({ game, actions }: { game: GameState; actions: GameAc
         <Overlay title="How to play" onClose={close}>
           <GameCodeNote game={game} />
           <Rules />
+          <Button className="w-full" onClick={close}>
+            Done
+          </Button>
         </Overlay>
       )}
 

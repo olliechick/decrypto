@@ -25,6 +25,7 @@ export interface GameState {
   codes: Code[]; // this team's code for each round, codes[round - 1]
   round: number; // 1 to MAX_ROUNDS
   revealed: boolean; // this round's code has been shown to everyone, after the guesses
+  endedEarly: boolean; // GAME_OVER from End, rather than after the last round
   version: number;
 }
 
@@ -48,6 +49,7 @@ export function createInitialState(): GameState {
     codes: [],
     round: 1,
     revealed: false,
+    endedEarly: false,
     version: 0,
   };
 }
@@ -69,6 +71,9 @@ export function normalizeState(stored: unknown): GameState {
     codes: Array.isArray(s.codes) ? s.codes : [],
     round: s.round,
     revealed: s.revealed === true,
+    // Saved before this was kept: a game over before the last round was ended early
+    endedEarly:
+      typeof (stored as Partial<GameState>).endedEarly === 'boolean' ? s.endedEarly : s.phase === 'GAME_OVER' && s.round < MAX_ROUNDS,
     version: typeof s.version === 'number' ? s.version : 0,
   };
   return state.phase === 'SETUP' || isPlayable(state) ? state : defaults;
@@ -96,6 +101,14 @@ export function isValidCode(code: unknown): code is Code {
     code.every((d) => Number.isInteger(d) && d >= 1 && d <= KEYWORD_COUNT) &&
     new Set(code).size === CODE_LENGTH
   );
+}
+
+// Trimmed, without blanks, and each name once (whatever its case), so the encryptor doesn't come round twice
+function uniquePlayers(players: string[]): string[] {
+  const seen = new Set<string>();
+  return players
+    .map((p) => p.trim())
+    .filter((p) => p && !seen.has(p.toLowerCase()) && seen.add(p.toLowerCase()));
 }
 
 // This team's encryptor for the round, or null if no players were entered
@@ -127,7 +140,7 @@ export function applyAction(state: GameState, action: GameAction): GameState {
         phase: 'PLAYING',
         gameCode: action.gameCode,
         team: action.team,
-        players: action.players.map((p) => p.trim()).filter(Boolean),
+        players: uniquePlayers(action.players),
         keywords,
         codes: action.codes.slice(0, MAX_ROUNDS),
         round,
@@ -147,18 +160,18 @@ export function applyAction(state: GameState, action: GameAction): GameState {
     case 'NEXT_ROUND':
       // Only once the code has been revealed, so a stray tap can't skip a round's code
       if (state.phase !== 'PLAYING' || !state.revealed) return state;
-      if (isLastRound(state)) return { ...state, phase: 'GAME_OVER' };
+      if (isLastRound(state)) return { ...state, phase: 'GAME_OVER', endedEarly: false };
       return { ...state, round: state.round + 1, revealed: false };
 
     case 'END_GAME':
       // The notepad decides the winner, so the game can end at any point
       if (state.phase !== 'PLAYING') return state;
-      return { ...state, phase: 'GAME_OVER' };
+      return { ...state, phase: 'GAME_OVER', endedEarly: true };
 
     case 'RESUME_GAME':
       // Back to the game as it was, for one ended by mistake
       if (state.phase !== 'GAME_OVER') return state;
-      return { ...state, phase: 'PLAYING' };
+      return { ...state, phase: 'PLAYING', endedEarly: false };
 
     case 'NEW_GAME':
       return { ...createInitialState(), version: state.version };

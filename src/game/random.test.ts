@@ -6,6 +6,7 @@ import {
   drawCode,
   drawKeywords,
   GAME_CODE_LENGTH,
+  gameCodeProblem,
   isValidGameCode,
   isWellFormedGameCode,
   makeGameCode,
@@ -70,6 +71,23 @@ describe('game codes', () => {
     expect(isWellFormedGameCode('AB0D')).toBe(false);
   });
 
+  it('are tidied up when typed with dashes or dots, or pasted as a join link', () => {
+    expect(cleanGameCode('k7q-2')).toBe('K7Q2');
+    expect(cleanGameCode('K.7.Q.2')).toBe('K7Q2');
+    expect(cleanGameCode('https://decrypto.olliechick.co.nz/?join=k7q2')).toBe('K7Q2');
+  });
+
+  it('say what is wrong with them', () => {
+    const code = makeGameCode();
+    expect(gameCodeProblem(code)).toBeNull();
+    expect(gameCodeProblem('AB')).toBe('too short');
+    expect(gameCodeProblem('ABCDE')).toBe('too long');
+    expect(gameCodeProblem('K0Q2')).toBe('characters');
+    expect(gameCodeProblem('KOQ')).toBe('characters');
+    const typo = code.slice(0, 3) + [...'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'].find((c) => !isValidGameCode(code.slice(0, 3) + c))!;
+    expect(gameCodeProblem(typo)).toBe('mismatch');
+  });
+
   it('catch a mistyped character', () => {
     const code = makeGameCode();
     let caught = 0;
@@ -101,6 +119,22 @@ describe('game codes', () => {
 describe('deal', () => {
   it('gives the same deal for the same game code, so both phones agree', () => {
     expect(deal('K7Q2')).toEqual(deal('K7Q2'));
+  });
+
+  // Pinned, so a change to the deal can't slip by: if this fails, the deal has changed, so bump the number in
+  // dealVersion (random.ts) so the check character catches phones on the old version, then update these
+  it('deals exactly what it always has for a game code', () => {
+    expect(deal('K7Q2')).toEqual({
+      keywords: [
+        ['ladder', 'book', 'dream', 'telephone'],
+        ['lip', 'spider', 'circus', 'holiday'],
+      ],
+      codes: [
+        [[4, 3, 2], [2, 3, 4], [3, 1, 4], [1, 4, 2], [1, 3, 4], [2, 1, 4], [3, 4, 1], [1, 2, 4]],
+        [[4, 1, 3], [1, 2, 3], [1, 2, 4], [4, 1, 3], [2, 3, 4], [2, 1, 3], [1, 2, 4], [3, 4, 1]],
+      ],
+    });
+    expect(makeGameCode(seededRand('pin'))).toBe('B5VX');
   });
 
   it("never gives both teams the same word, and each has 8 valid codes", () => {

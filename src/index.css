@@ -4,3 +4,8 @@ body {
   margin: 0;
   background-color: #0f172a; /* slate-900, behind every screen */
 }
+
+/* Clear of an iPhone's notch and home bar (the page fills the screen: viewport-fit=cover in index.html) */
+.safe-area {
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}

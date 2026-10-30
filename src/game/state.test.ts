@@ -7,8 +7,8 @@ describe('starting a game', () => {
     expect(createInitialState().phase).toBe('SETUP');
   });
 
-  it("START_GAME puts this team's keywords on show for round 1, with the code hidden", () => {
-    const s = start({ team: 1, players: [' Sam ', '', 'Jo'] });
+  it("START_GAME puts this team's keywords on show for round 1, with the code hidden (and each player once)", () => {
+    const s = start({ team: 1, players: [' Sam ', '', 'Jo', 'sam'] });
     expect(s.phase).toBe('PLAYING');
     expect(s.team).toBe(1);
     expect(s.keywords).toEqual(KEYWORDS);
@@ -103,7 +103,11 @@ describe('encryptors', () => {
 
 describe('the end of the game', () => {
   it('can come early, since the notepad decides the winner', () => {
-    expect(run(rounds(start(), 3), { type: 'END_GAME' }).phase).toBe('GAME_OVER');
+    const s = run(rounds(start(), 3), { type: 'END_GAME' });
+    expect(s.phase).toBe('GAME_OVER');
+    expect(s.endedEarly).toBe(true);
+    expect(run(rounds(start(), MAX_ROUNDS - 1), { type: 'END_GAME' }).endedEarly).toBe(true);
+    expect(rounds(start(), MAX_ROUNDS).endedEarly).toBe(false);
     expect(run(createInitialState(), { type: 'END_GAME' }).phase).toBe('SETUP');
   });
 
@@ -113,6 +117,7 @@ describe('the end of the game', () => {
     expect(s.phase).toBe('PLAYING');
     expect(s.round).toBe(4);
     expect(s.revealed).toBe(true);
+    expect(s.endedEarly).toBe(false);
     expect(applyAction(before, { type: 'RESUME_GAME' })).toBe(before);
     expect(applyAction(createInitialState(), { type: 'RESUME_GAME' }).phase).toBe('SETUP');
   });
@@ -140,6 +145,13 @@ describe('saved games', () => {
     }
     expect(s.phase).toBe('GAME_OVER');
     expect(normalizeState(JSON.parse(JSON.stringify(s)))).toEqual(s);
+  });
+
+  it('a game over saved before endedEarly was kept says whether it ended early', () => {
+    const { endedEarly: _, ...old } = run(rounds(start(), 2), { type: 'END_GAME' });
+    expect(normalizeState(JSON.parse(JSON.stringify(old))).endedEarly).toBe(true);
+    const { endedEarly: __, ...finished } = rounds(start(), MAX_ROUNDS);
+    expect(normalizeState(JSON.parse(JSON.stringify(finished))).endedEarly).toBe(false);
   });
 
   it.each([null, 'nonsense', 42, { phase: 'DANCING' }, { phase: 'PLAYING' }])(

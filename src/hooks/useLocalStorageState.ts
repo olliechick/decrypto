@@ -31,11 +31,29 @@ export function useLocalStorageState<T>(key: string, initialValue: Init<T>, norm
       if (loadedFromStorage.current) return;
     }
     try {
-      localStorage.setItem(key, JSON.stringify(state));
+      // Unchanged (such as a change just picked up from another tab) isn't written back, so tabs don't echo each other
+      const raw = JSON.stringify(state);
+      if (localStorage.getItem(key) !== raw) localStorage.setItem(key, raw);
     } catch {
       // ignore quota / privacy mode issues
     }
   }, [key, state]);
+
+  // Another tab (or the installed app and the browser, which share storage on Android) saved a change: show it here
+  // too, instead of overwriting it with this tab's older copy on the next tap
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== key || e.newValue == null) return;
+      try {
+        const parsed = JSON.parse(e.newValue);
+        setState(normalize ? normalize(parsed) : (parsed as T));
+      } catch {
+        // ignore a value that isn't JSON
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [key, normalize]);
 
   return [state, setState] as const;
 }

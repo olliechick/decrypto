@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { cleanGameCode, GAME_CODE_LENGTH, isValidGameCode, isWellFormedGameCode, makeGameCode } from '../game/random';
+import { cleanGameCode, gameCodeProblem, makeGameCode, type GameCodeProblem } from '../game/random';
 import { MAX_ROUNDS, type TeamIndex } from '../game/state';
 import { useNewerVersion } from '../hooks/useNewerVersion';
 import { TEAM_NAMES, TEAM_STYLES } from '../utils/teamStyles';
@@ -36,10 +36,9 @@ export function SetupScreen({ joinCode, onStart }: SetupScreenProps) {
   const team: TeamIndex = mode === 'join' ? (rejoin ? rejoinTeam : 1) : 0;
   const styles = TEAM_STYLES[team];
   const cleanCode = cleanGameCode(code);
-  const codeError = mode === 'join' && !isValidGameCode(cleanCode);
-  // A whole code that doesn't check out was mistyped, or made by a different version of the app (so it would deal
-  // different keywords). From a QR code it can't be a typo.
-  const codeMismatch = codeError && isWellFormedGameCode(cleanCode);
+  const problem = mode === 'join' ? gameCodeProblem(cleanCode) : null;
+  const codeError = problem !== null;
+  const fromQrCode = joinCode !== null && cleanCode === joinCode;
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -77,6 +76,7 @@ export function SetupScreen({ joinCode, onStart }: SetupScreenProps) {
           <Button variant="secondary" className="w-full" onClick={() => setMode('join')}>
             Join the other team's game
           </Button>
+          <p className="text-center text-sm text-white/60">Only one phone starts. The other team's phone joins it.</p>
         </div>
       ) : (
         <form onSubmit={handleSubmit} noValidate className={`rounded-2xl p-4 space-y-4 ${styles.card}`}>
@@ -86,7 +86,7 @@ export function SetupScreen({ joinCode, onStart }: SetupScreenProps) {
           <p className={styles.muted}>
             {mode === 'start'
               ? "You'll get a game code for the other team's phone to join with."
-              : joinCode
+              : fromQrCode
                 ? 'The game code from the QR code is filled in.'
                 : "Type the game code shown on the other team's phone, or scan its QR code with your camera."}
           </p>
@@ -96,18 +96,15 @@ export function SetupScreen({ joinCode, onStart }: SetupScreenProps) {
               <input
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
-                maxLength={GAME_CODE_LENGTH + 2}
                 autoComplete="off"
                 autoCapitalize="characters"
                 autoFocus={!joinCode}
                 placeholder="e.g. K7Q2"
                 className="w-full rounded-lg bg-transparent ring-1 ring-current/30 px-3 py-2 text-3xl font-mono font-black uppercase tracking-widest"
               />
-              {codeMismatch && (
+              {problem && problem !== 'too short' && (
                 <span role="alert" className="block text-sm font-bold text-red-600">
-                  {cleanCode === joinCode
-                    ? "This QR code is from a different version of the app. Reload the app on both phones, then start a new game."
-                    : "That code doesn't work. Check it, and if it's right, reload the app on both phones so they're on the same version."}
+                  {codeProblemMessage(problem, fromQrCode)}
                 </span>
               )}
             </label>
@@ -180,8 +177,28 @@ export function SetupScreen({ joinCode, onStart }: SetupScreenProps) {
       {showRules && (
         <Overlay title="How to play" onClose={() => setShowRules(false)}>
           <Rules />
+          <Button className="w-full" onClick={() => setShowRules(false)}>
+            Done
+          </Button>
         </Overlay>
       )}
     </Screen>
   );
+}
+
+// A code that's too short is still being typed, so it gets no message
+function codeProblemMessage(problem: GameCodeProblem, fromQrCode: boolean): string {
+  switch (problem) {
+    case 'characters':
+      return 'Game codes never have 0, O, 1 or I in them. Check the code on the other phone.';
+    case 'too short':
+    case 'too long':
+      return 'Game codes are 4 characters. Check the code on the other phone.';
+    case 'mismatch':
+      // Mistyped, or made by a different version of the app (so it would deal different keywords). From a QR code it
+      // can't be a typo.
+      return fromQrCode
+        ? 'This QR code is from a different version of the app. Reload the app on both phones, then start a new game.'
+        : "That code doesn't work. Check it against the other phone. If it's right, the phones are on different versions: reload the app on both.";
+  }
 }

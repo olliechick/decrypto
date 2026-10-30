@@ -15,24 +15,30 @@ export default function App() {
   useWakeLock(game.phase === 'PLAYING');
 
   // A scanned QR code opens the app with ?join=CODE. Read it once, then take it out of the address so a refresh
-  // doesn't offer to join again. A link to this phone's own game (its own QR code, say) is ignored.
+  // doesn't offer to join again. A link to this phone's own game (its own QR code, say) is ignored, and so is a link
+  // from a different version of the app while a game is going (only the setup screen explains those), so it can't
+  // turn up later on the next new game.
   const [joinCode, setJoinCode] = useState(() => {
     const code = readJoinCode(window.location.search);
-    return code === game.gameCode ? null : code;
+    if (code === game.gameCode || (code && game.phase !== 'SETUP' && !isValidGameCode(code))) return null;
+    return code;
   });
   useEffect(() => {
     if (window.location.search) window.history.replaceState(null, '', withoutJoinCode(window.location.href));
   }, []);
 
-  // Scanned on a phone with a game already going: check before throwing that game away. A code from a different
-  // version of the app is only explained on the setup screen, so it never ends a game.
-  if (joinCode && isValidGameCode(joinCode) && game.phase !== 'SETUP') {
+  // Scanned on a phone with a game already going (or just over): check before throwing that game away
+  if (joinCode && game.phase !== 'SETUP') {
     return (
       <Overlay title={`Join game ${joinCode}?`} onClose={() => setJoinCode(null)}>
-        <p className="text-white/80">This phone already has a game going. Joining the new one ends it.</p>
+        <p className="text-white/80">
+          {game.phase === 'PLAYING'
+            ? 'This phone already has a game going. Joining the new one ends it.'
+            : "This phone's last game is over. Joining the new one clears it."}
+        </p>
         <div className="grid grid-cols-2 gap-2">
           <Button variant="secondary" onClick={() => setJoinCode(null)}>
-            Keep this game
+            {game.phase === 'PLAYING' ? 'Keep this game' : 'Not now'}
           </Button>
           <Button onClick={actions.newGame}>Join {joinCode}</Button>
         </div>

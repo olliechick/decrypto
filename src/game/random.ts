@@ -52,8 +52,12 @@ export function makeGameCode(rand: Rand = Math.random, words: string[] = WORDS):
   return body + checkCharacter(body, words);
 }
 
-// What someone typed, tidied up: upper case, no spaces
-export const cleanGameCode = (input: string) => input.toUpperCase().replace(/\s/g, '');
+// What someone typed or pasted, tidied up: upper case, letters and digits only (so "k7q-2" is K7Q2). A pasted join
+// link gives its code.
+export function cleanGameCode(input: string): string {
+  const fromLink = input.match(/[?&]join=([^&#\s]*)/i)?.[1];
+  return (fromLink ?? input).toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
 
 // The right length and characters, whatever version made it
 export const isWellFormedGameCode = (code: string) =>
@@ -62,6 +66,17 @@ export const isWellFormedGameCode = (code: string) =>
 // A game code this version of the app can deal from
 export const isValidGameCode = (code: string, words: string[] = WORDS) =>
   isWellFormedGameCode(code) && code.endsWith(checkCharacter(code.slice(0, -1), words));
+
+// What's wrong with a (cleaned) game code, to explain it to whoever typed it. 'mismatch' is a whole code that doesn't
+// check out: mistyped, or made by a version of the app with a different deal.
+export type GameCodeProblem = 'characters' | 'too short' | 'too long' | 'mismatch';
+
+export function gameCodeProblem(code: string, words: string[] = WORDS): GameCodeProblem | null {
+  if (![...code].every((c) => GAME_CODE_ALPHABET.includes(c))) return 'characters';
+  if (code.length < GAME_CODE_LENGTH) return 'too short';
+  if (code.length > GAME_CODE_LENGTH) return 'too long';
+  return isValidGameCode(code, words) ? null : 'mismatch';
+}
 
 // A repeatable random number generator for a game code (FNV-1a hash, then mulberry32)
 export function seededRand(seed: string): Rand {
